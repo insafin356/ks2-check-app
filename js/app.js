@@ -23,8 +23,7 @@ let state = {
 /* ── Тема ───────────────────────────────────────────────────── */
 
 const savedTheme = localStorage.getItem('theme');
-const systemLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
-let theme = savedTheme || (systemLight ? 'light' : 'dark');
+let theme = savedTheme || 'dark';
 applyTheme(theme);
 function applyTheme(t) {
   theme = t;
