@@ -1,5 +1,5 @@
 /* Service worker: офлайн-кеш приложения и библиотек */
-const CACHE = 'ks2-check-v1';
+const CACHE = 'ks2-check-v2';
 const ASSETS = [
   './', './index.html', './manifest.json',
   './css/app.css',
