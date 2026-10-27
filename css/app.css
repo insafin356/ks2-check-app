@@ -18,7 +18,7 @@
   --warn: #f0b429; --warn-bg: rgba(240, 180, 41, .1);  --warn-bd: #4a3c1c; --warn-tx: #f0b429;
   --err: #e06c5f;  --err-bg: rgba(224, 108, 95, .1);   --err-bd: #4a2c28;  --err-tx: #e06c5f;
   --row-alt: rgba(255, 255, 255, .025);
-  --mono: "Cascadia Code", "Consolas", ui-monospace, monospace;
+  --mono: Calibri, "Segoe UI", Arial, sans-serif;
   --sans: "Segoe UI", Roboto, Arial, sans-serif;
   --bg-lines: rgba(215, 225, 230, .035);
 }
@@ -39,7 +39,7 @@
   --warn: #8a6400; --warn-bg: #fdf3cf; --warn-bd: #d8b53a; --warn-tx: #8a6400;
   --err: #b93c30;  --err-bg: #fbe7e4;  --err-bd: #dfa49e;  --err-tx: #b93c30;
   --row-alt: rgba(26, 46, 56, .03);
-  --mono: "Cascadia Code", "Consolas", ui-monospace, monospace;
+  --mono: Calibri, "Segoe UI", Arial, sans-serif;
   --sans: "Segoe UI", Roboto, Arial, sans-serif;
   --bg-lines: rgba(26, 46, 56, .045);
 }
