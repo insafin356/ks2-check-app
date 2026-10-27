@@ -151,9 +151,21 @@ export function parseActWorkbook(data) {
 
   const ws = wb.Sheets[bestSheet];
   const { col: colCode } = best.cols.code, { col: colName } = best.cols.name, { col: colUnit } = best.cols.unit, { col: colPrice } = best.cols.price;
+
+  // Фактическое начало данных: последняя строка (в пределах найденного окна шапки),
+  // в которой в распознанных колонках встречаются ключевые слова заголовков.
+  // Окно шапки может захватить и первую строку данных — не терять её.
+  const headerKw = /обоснование|шифр|наименование|единицаизм|едизм|стоимость|цена/;
+  let startRow = best.headerRow + 1;
+  for (let r = 0; r <= best.headerRow; r++) {
+    const isHeader = [colCode, colName, colUnit, colPrice]
+      .some(c => headerKw.test(normalizeText(ws[encode(r, c)]?.v)));
+    if (isHeader) startRow = r + 1;
+  }
+
   const rows = [];
   let outRow = 1, loaded = 0, skipped = 0;
-  for (let r = best.headerRow + 1; r <= lastUsedRow(ws); r++) {
+  for (let r = startRow; r <= lastUsedRow(ws); r++) {
     const code = extractCodeFromCell(ws[encode(r, colCode)]?.v);
     const nm = cleanVisibleText(ws[encode(r, colName)]?.v);
     const unit = cleanVisibleText(ws[encode(r, colUnit)]?.v);
@@ -163,5 +175,5 @@ export function parseActWorkbook(data) {
       outRow++; loaded++;
     } else skipped++;
   }
-  return { rows, meta: { sheet: bestSheet, cols: { code: colCode + 1, name: colName + 1, unit: colUnit + 1, price: colPrice + 1 }, headerRow: best.headerRow + 1, loaded, skipped } };
+  return { rows, meta: { sheet: bestSheet, cols: { code: colCode + 1, name: colName + 1, unit: colUnit + 1, price: colPrice + 1 }, headerRow: startRow + 1, loaded, skipped } };
 }
