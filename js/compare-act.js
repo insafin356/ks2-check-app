@@ -69,7 +69,35 @@ export function compareAct(contractRows, actRows, tolerance) {
 
       if (isCommercialProposalCode(code)) {
         const keyNameUnit = compactMatchText(name) + '|' + unit;
-        const g = dictNameUnit.get(keyNameUnit);
+        let g = dictNameUnit.get(keyNameUnit);
+        if (!g) {
+          // Расширенный подбор КП: в акте к наименованию часто добавлен суффикс
+          // вида «(Письмо ПАО "Газпром" …)», в договоре — технический префикс
+          // переноса («мм …»). Ищем единственную договорную позицию с той же
+          // ед.изм., чьё наименование целиком содержится в наименовании акта
+          // (или наоборот).
+          let core = name;
+          for (let prev = null; prev !== core;) { prev = core; core = core.replace(/\([^()]*\)/g, ' '); }
+          const actCompact = compactMatchText(core);
+          const seen = new Set();
+          let first = null;
+          for (const [key, group] of dictNameUnit) {
+            const parts = key.split('|');
+            const u = parts.pop();
+            const cn = parts.join('|');
+            if (u !== unit || !cn) continue;
+            if (actCompact.includes(cn) || cn.includes(actCompact)) {
+              if (!first) first = group;
+              seen.add(group);
+            }
+          }
+          if (seen.size === 1) g = first;
+          else if (seen.size > 1) {
+            // несколько кандидатов допустимы, если у них одинаковые цены
+            const ranges = new Set([...seen].map(x => priceKey(x.minPrice) + ':' + priceKey(x.maxPrice)));
+            if (ranges.size === 1) g = first;
+          }
+        }
         if (g) { contract = g; matchedByName = true; }
         else { status = 'ПОЗИЦИЯ КП НЕ НАЙДЕНА'; note = 'Позиция КП не найдена по наименованию и единице измерения. Номер КП при проверке не учитывается.'; sum.codeNotFound++; }
       } else if (dictExactName.has(keyExact)) {
