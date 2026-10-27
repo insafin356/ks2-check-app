@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -9,76 +9,116 @@
 </head>
 <body>
 <header class="app-header">
-  <h1>Проверка КС-2 / МАРКЕТ по договору</h1>
-  <div class="sub">Сверка единичных расценок · ГЭСН · ФЕР · ТЕР</div>
-  <nav id="tabs">
-    <button data-tab="contract" class="active">Договор</button>
-    <button data-tab="act">КС-2 / Акт</button>
-    <button data-tab="market">МАРКЕТ</button>
+  <div class="hdr-row">
+    <div class="logo" aria-hidden="true"></div>
+    <div class="hdr-title">
+      <h1>Проверка КС-2 / МАРКЕТ</h1>
+      <div class="sub">Сверка единичных расценок · ГЭСН · ФЕР</div>
+    </div>
+    <button id="theme-toggle" class="ghost" title="Светлая / тёмная тема" aria-label="Переключить тему">Светлая тема</button>
+  </div>
+  <div id="statusbar" class="statusbar" hidden></div>
+  <nav id="tabs" aria-label="Разделы">
+    <button data-tab="check" class="active">Проверка</button>
+    <button data-tab="contract">Договор</button>
+    <button data-tab="act">КС-2</button>
+    <button data-tab="market">Маркет</button>
     <button data-tab="report">Отчет</button>
   </nav>
 </header>
 
 <main>
-  <section id="tab-contract" class="tab active">
-    <div class="card">
-      <h2>Договор (PDF)</h2>
-      <p>Загрузите полный PDF-файл договора. Приложение найдёт таблицу единичных расценок СМР (ГЭСН / ФЕР / ТЕР) в приложении к договору.</p>
-      <input type="file" id="file-contract" accept=".pdf">
-      <div id="contract-status" class="status"></div>
-      <div id="contract-progress" class="progress"><div></div></div>
-      <div id="contract-meta" class="meta"></div>
+  <section id="tab-check" class="tab active">
+    <div class="upload-grid">
+      <div class="card upload">
+        <h2>Договор (PDF)</h2>
+        <p>Приложение к договору: единичные расценки СМР.</p>
+        <input type="file" id="file-contract" accept=".pdf">
+        <div id="contract-progress" class="progress"><div></div></div>
+        <div id="contract-status" class="status"></div>
+        <div id="contract-meta" class="meta"></div>
+      </div>
+      <div class="card upload">
+        <h2>КС-2 (Excel)</h2>
+        <p>Акт выполненных работ.</p>
+        <input type="file" id="file-act" accept=".xlsx,.xlsm,.xls">
+        <div id="act-status" class="status"></div>
+        <div id="act-meta" class="meta"></div>
+      </div>
+      <div class="card upload">
+        <h2>МАРКЕТ (Excel)</h2>
+        <p>Форма МАРКЕТ: материалы.</p>
+        <input type="file" id="file-market" accept=".xlsx,.xlsm,.xls">
+        <div id="market-status" class="status"></div>
+      </div>
+    </div>
+    <div class="card check-panel">
+      <div class="report-controls">
+        <label>Допуск округления: <input type="number" id="tolerance" value="0.01" step="0.001" min="0"></label>
+        <button id="btn-check-act">Проверить КС-2 по договору</button>
+        <button id="btn-check-market">Проверить МАРКЕТ по договору</button>
+        <button id="btn-export" class="ghost">Экспорт в Excel</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-contract" class="tab">
+    <div class="card info-card" id="contract-info"></div>
+    <div class="chips" id="contract-chips"></div>
+    <div class="table-wrap">
+      <div class="empty" id="contract-empty"><span class="big">⌂</span>Договор не загружен. Вернитесь на вкладку «Проверка» и загрузите PDF.</div>
+      <table id="table-contract" style="display:none"></table>
+      <div class="show-more-row"><button id="btn-contract-more" class="ghost" hidden>Показать все</button></div>
     </div>
   </section>
 
   <section id="tab-act" class="tab">
-    <div class="card">
-      <h2>КС-2 / Акт (Excel)</h2>
-      <p>Автоматически определяются колонки: Обоснование, Наименование, Ед. изм., Стоимость на единицу.</p>
-      <input type="file" id="file-act" accept=".xlsx,.xlsm,.xls">
-      <div id="act-status" class="status"></div>
-      <div id="act-meta" class="meta"></div>
+    <div class="card info-card" id="act-info"></div>
+    <div class="hint" id="act-hint" hidden>Сверка не выполнена — статусы появятся после проверки на вкладке «Проверка».</div>
+    <div class="chips" id="act-chips"></div>
+    <div class="table-wrap">
+      <div class="empty" id="act-empty"><span class="big">⌂</span>КС-2 не загружен. Вернитесь на вкладку «Проверка» и загрузите Excel.</div>
+      <table id="table-act" style="display:none"></table>
+      <div class="show-more-row"><button id="btn-act-more" class="ghost" hidden>Показать все</button></div>
     </div>
-    <div class="card">
-      <h2>МАРКЕТ (Excel)</h2>
-      <p>Ожидаются колонки: Технические регламенты, Наименование мастер-ассортимента, Цена без НДС.</p>
-      <input type="file" id="file-market" accept=".xlsx,.xlsm,.xls">
-      <div id="market-status" class="status"></div>
-      <div id="market-meta" class="meta"></div>
+  </section>
+
+  <section id="tab-market" class="tab">
+    <div class="card info-card" id="market-info"></div>
+    <div class="hint" id="market-hint" hidden>Сверка не выполнена — статусы появятся после проверки на вкладке «Проверка».</div>
+    <div class="chips" id="market-chips"></div>
+    <div class="table-wrap">
+      <div class="empty" id="market-empty"><span class="big">⌂</span>МАРКЕТ не загружен. Вернитесь на вкладку «Проверка» и загрузите Excel.</div>
+      <table id="table-market" style="display:none"></table>
+      <div class="show-more-row"><button id="btn-market-more" class="ghost" hidden>Показать все</button></div>
     </div>
   </section>
 
   <section id="tab-report" class="tab">
-    <div class="card">
-      <div class="report-controls">
-        <button id="btn-check-act">Проверить КС-2 по договору</button>
-        <button id="btn-check-market">Проверить МАРКЕТ по договору</button>
-        <label>Допуск округления: <input type="number" id="tolerance" value="0.01" step="0.001" min="0"></label>
-        <select id="status-filter">
-          <option value="">Все статусы</option>
-          <option value="ОК">ОК</option>
-          <option value="ЦЕНА ВЫШЕ ДОГОВОРНОЙ">ЦЕНА ВЫШЕ ДОГОВОРНОЙ</option>
-          <option value="ШИФР НЕ НАЙДЕН">ШИФР НЕ НАЙДЕН</option>
-          <option value="НЕ СОВПАДАЕТ ЕД. ИЗМ.">НЕ СОВПАДАЕТ ЕД. ИЗМ.</option>
-          <option value="ТРЕБУЕТ ПРОВЕРКИ ДУБЛЯ">ТРЕБУЕТ ПРОВЕРКИ ДУБЛЯ</option>
-          <option value="НЕ УДАЛОСЬ ОПРЕДЕЛИТЬ ЦЕНУ">НЕ УДАЛОСЬ ОПРЕДЕЛИТЬ ЦЕНУ</option>
-          <option value="ОТСУТСТВУЕТ ШИФР">ОТСУТСТВУЕТ ШИФР</option>
-          <option value="ОТСУТСТВУЕТ ЕД. ИЗМ.">ОТСУТСТВУЕТ ЕД. ИЗМ.</option>
-          <option value="ОТСУТСТВУЕТ НАИМЕНОВАНИЕ">ОТСУТСТВУЕТ НАИМЕНОВАНИЕ</option>
-          <option value="ПОЗИЦИЯ КП НЕ НАЙДЕНА">ПОЗИЦИЯ КП НЕ НАЙДЕНА</option>
-          <option value="ЦЕНА НЕ РАВНА ДОГОВОРНОЙ">ЦЕНА НЕ РАВНА ДОГОВОРНОЙ</option>
-        </select>
-        <button id="btn-export">Экспорт в Excel</button>
+    <div class="report-controls card">
+      <select id="status-filter">
+        <option value="">Все статусы</option>
+        <option value="ОК">ОК</option>
+        <option value="ЦЕНА ВЫШЕ ДОГОВОРНОЙ">ЦЕНА ВЫШЕ ДОГОВОРНОЙ</option>
+        <option value="ШИФР НЕ НАЙДЕН">ШИФР НЕ НАЙДЕН</option>
+        <option value="НЕ СОВПАДАЕТ ЕД. ИЗМ.">НЕ СОВПАДАЕТ ЕД. ИЗМ.</option>
+        <option value="ТРЕБУЕТ ПРОВЕРКИ ДУБЛЯ">ТРЕБУЕТ ПРОВЕРКИ ДУБЛЯ</option>
+        <option value="НЕ УДАЛОСЬ ОПРЕДЕЛИТЬ ЦЕНУ">НЕ УДАЛОСЬ ОПРЕДЕЛИТЬ ЦЕНУ</option>
+        <option value="ОТСУТСТВУЕТ ШИФР">ОТСУТСТВУЕТ ШИФР</option>
+        <option value="ОТСУТСТВУЕТ ЕД. ИЗМ.">ОТСУТСТВУЕТ ЕД. ИЗМ.</option>
+        <option value="ОТСУТСТВУЕТ НАИМЕНОВАНИЕ">ОТСУТСТВУЕТ НАИМЕНОВАНИЕ</option>
+        <option value="ПОЗИЦИЯ КП НЕ НАЙДЕНА">ПОЗИЦИЯ КП НЕ НАЙДЕНА</option>
+        <option value="ЦЕНА НЕ РАВНА ДОГОВОРНОЙ">ЦЕНА НЕ РАВНА ДОГОВОРНОЙ</option>
+      </select>
+    </div>
+    <div id="summary" class="summary"></div>
+    <div class="table-wrap" id="table-wrap">
+      <div class="empty" id="empty-state">
+        <span class="big">≡</span>
+        Отчет ещё не сформирован. Загрузите договор, затем КС-2 или МАРКЕТ,
+        и нажмите «Проверить» — расхождения появятся здесь.
       </div>
-      <div id="summary" class="summary"></div>
-      <div class="table-wrap" id="table-wrap">
-        <div class="empty" id="empty-state">
-          <span class="big">≡</span>
-          Отчет ещё не сформирован. Загрузите договор, затем КС-2 или МАРКЕТ,
-          и нажмите «Проверить» — расхождения появятся здесь.
-        </div>
-        <table id="report-table" style="display:none"></table>
-      </div>
+      <table id="report-table" style="display:none"></table>
     </div>
   </section>
 </main>

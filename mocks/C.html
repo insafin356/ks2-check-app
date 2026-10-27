@@ -1,0 +1,51 @@
+﻿<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><title>Концепция C</title>
+<style>
+:root{--bg:#F6F8F7;--card:#fff;--ink:#22302B;--green:#2F6B4F;--tx2:#7C8A85;--line:#DFE7E3;--ok:#2F6B4F;--warn:#B7791F;--err:#C4453C}
+*{box-sizing:border-box}body{margin:0;font-family:"Segoe UI",Arial,sans-serif;background:
+ radial-gradient(circle at 12% 18%, rgba(47,107,79,.05) 0 1.5px, transparent 2px),
+ radial-gradient(circle at 62% 68%, rgba(47,107,79,.05) 0 1.5px, transparent 2px),
+ linear-gradient(rgba(223,231,227,.9) 1px,transparent 1px) 0 0/100% 44px,
+ var(--bg);color:var(--ink)}
+.hdr{padding:22px 26px 0;max-width:1060px;margin:0 auto}
+.hdr h1{font-size:22px;font-weight:600;margin:0 0 2px;color:var(--ink)}
+.hdr .sub{font-size:13px;color:var(--tx2);margin-bottom:16px}
+.tabs{display:flex;gap:20px;border-bottom:2px solid var(--line)}
+.tabs span{padding:10px 2px;font-size:14px;color:var(--tx2)}
+.tabs span.on{color:var(--green);font-weight:600;border-bottom:2px solid var(--green);margin-bottom:-2px}
+.pillbar{display:flex;gap:14px;align-items:center;padding:20px 26px 4px;max-width:1060px;margin:0 auto}
+.pill{font:12px Consolas;color:var(--tx2);background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 14px}
+.pill.ok{color:var(--ok);background:#EAF4EE;border-color:#BCD8C7}
+.pill.err{color:var(--err);background:#FBECEA;border-color:#E5B8B4}
+.main{padding:18px 26px 8px;display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:1060px;margin:0 auto}
+.up{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:0 2px 8px rgba(34,48,43,.05)}
+.up h3{margin:0 0 6px;font-size:15px;font-weight:600}
+.up .d{font-size:12px;color:var(--tx2);margin-bottom:14px}
+.btn{display:inline-block;background:var(--green);color:#fff;font:600 12.5px "Segoe UI";padding:10px 18px;border-radius:999px}
+.btn.ghost{background:#fff;border:1px solid var(--line);color:var(--ink)}
+.btn.go{background:#EAF4EE;color:var(--ok);border:1px solid #BCD8C7}
+.state{font:11.5px Consolas;color:var(--ok);margin-top:12px}
+.tw{max-width:1060px;margin:14px auto 30px;padding:0 26px}
+table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+th{font:600 11px "Segoe UI";color:var(--tx2);text-align:left;padding:12px 14px;background:#FBFCFB;border-bottom:1px solid var(--line)}
+td{padding:11px 14px;border-bottom:1px solid #EEF2F0;vertical-align:top}
+tr:nth-child(even) td{background:#FAFBFA}
+.mono{font-family:Consolas}
+.badge{font:600 10.5px "Segoe UI";padding:3px 10px;border-radius:999px}
+.b-ok{color:#fff;background:var(--ok)}
+.b-w{color:#7A4B00;background:#F5E3C2}
+.b-e{color:#fff;background:var(--err)}
+</style></head><body>
+<div class="hdr"><h1>Проверка КС-2 / МАРКЕТ по договору</h1><div class="sub">Сверка единичных расценок с приложением к договору</div>
+<div class="tabs"><span class="on">Проверка</span><span>Договор</span><span>КС-2</span><span>Маркет</span><span>Отчет</span></div></div>
+<div class="pillbar"><span class="pill">Допуск: 0,01</span><span class="pill ok">КС-2 ОК: 50 · ошибок: 0</span><span class="pill err">МАРКЕТ ОК: 822 · ошибок: 5</span><span class="btn go" style="margin-left:auto">Проверить КС-2</span><span class="btn ghost">Проверить МАРКЕТ</span></div>
+<div class="main">
+<div class="up"><h3>Договор (PDF)</h3><div class="d">Приложение к договору: единичные расценки СМР</div><span class="btn">Загрузить PDF</span><div class="state">✓ 518-26-с от 07.08.26 · 1012 позиций</div></div>
+<div class="up"><h3>КС-2 (Excel)</h3><div class="d">Акт выполненных работ</div><span class="btn ghost">Загрузить Excel</span><div class="state">✓ 18. КС-2.xlsx · 50 позиций</div></div>
+<div class="up"><h3>МАРКЕТ (Excel)</h3><div class="d">Форма МАРКЕТ: материалы</div><span class="btn ghost">Загрузить Excel</span><div class="state">✓ excel-exporter.xlsx · 827 позиций</div></div>
+</div>
+<div class="tw"><table><thead><tr><th>№</th><th>Шифр</th><th>Наименование</th><th>Ед.</th><th>Цена, руб</th><th>Статус</th></tr></thead><tbody>
+<tr><td class="mono">1</td><td class="mono">ГЭСН01-01-009-14</td><td>Разработка грунта в траншеях экскаваторами</td><td class="mono">1000 м3</td><td class="mono">75 489,57</td><td><span class="badge b-ok">ОК</span></td></tr>
+<tr><td class="mono">2</td><td class="mono">24.3.03.11-0000-0180</td><td>Труба напорная из ПЭ 100 RC, SDR 11, d 500</td><td class="mono">м</td><td class="mono">33 652,61</td><td><span class="badge b-e">ЦЕНА НЕ РАВНА</span></td></tr>
+<tr><td class="mono">3</td><td class="mono">КП-6</td><td>Цокольный ввод ЦВПС ПЭ 100 SDR11 63×57×25</td><td class="mono">шт</td><td class="mono">14 481,22</td><td><span class="badge b-w">ДУБЛЬ</span></td></tr>
+<tr><td class="mono">4</td><td class="mono">101-9410-000003</td><td>Швеллеры № 22 сталь СТ3 ПС</td><td class="mono">кг</td><td class="mono">102 099,87</td><td><span class="badge b-e">ШИФР НЕ НАЙДЕН</span></td></tr>
+</tbody></table></div></body></html>
