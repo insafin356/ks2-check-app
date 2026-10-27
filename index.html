@@ -10,6 +10,7 @@
 <body>
 <header class="app-header">
   <h1>Проверка КС-2 / МАРКЕТ по договору</h1>
+  <div class="sub">Сверка единичных расценок · ГЭСН · ФЕР · ТЕР</div>
   <nav id="tabs">
     <button data-tab="contract" class="active">Договор</button>
     <button data-tab="act">КС-2 / Акт</button>
@@ -70,7 +71,14 @@
         <button id="btn-export">Экспорт в Excel</button>
       </div>
       <div id="summary" class="summary"></div>
-      <div class="table-wrap"><table id="report-table"></table></div>
+      <div class="table-wrap" id="table-wrap">
+        <div class="empty" id="empty-state">
+          <span class="big">≡</span>
+          Отчет ещё не сформирован. Загрузите договор, затем КС-2 или МАРКЕТ,
+          и нажмите «Проверить» — расхождения появятся здесь.
+        </div>
+        <table id="report-table" style="display:none"></table>
+      </div>
     </div>
   </section>
 </main>

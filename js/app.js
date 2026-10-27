@@ -130,6 +130,8 @@ const CHIP_KEYS_MARKET = [
 function renderReport() {
   if (!state.report) return;
   const { kind, report, summary, tolerance } = state.report;
+  $('empty-state').style.display = 'none';
+  $('report-table').style.display = '';
   const chips = kind === 'act' ? CHIP_KEYS_ACT : CHIP_KEYS_MARKET;
   $('summary').innerHTML =
     `<span class="chip">Правило цены: ${kind === 'act' ? 'цена в акте &lt;= цена по договору' : 'цена МАРКЕТ = цена по договору'}</span>` +
@@ -148,11 +150,20 @@ function renderReport() {
        ['Строка договора', r => r.contractRow], ['Наименование в договоре', r => r.contractName],
        ['Цена по договору', r => fmtNum(r.contractPrice), 'num'], ['Разница', r => fmtNum(r.diff), 'num'], ['Дублей', r => r.duplicates]];
 
+  const badgeCls = { 'ОК': 'ok', 'ТРЕБУЕТ ПРОВЕРКИ ДУБЛЯ': 'warn' };
   const table = $('report-table');
   table.innerHTML = '<thead><tr>' + cols.map(([h]) => `<th>${h}</th>`).join('') + '</tr></thead>' +
     '<tbody>' + visible.map(r => {
       const cls = r.status === 'ОК' ? 'status-ok' : r.status === 'ТРЕБУЕТ ПРОВЕРКИ ДУБЛЯ' ? 'status-warn' : 'status-err';
-      return `<tr class="${cls}">` + cols.map(([, get, cls2]) => `<td${cls2 ? ` class="${cls2}"` : ''}>${esc(get(r))}</td>`).join('') + '</tr>';
+      return `<tr class="${cls}">` + cols.map(([h, get, cls2]) => {
+        const v = get(r);
+        if (h === 'Статус') {
+          const b = badgeCls[r.status] || 'err';
+          return `<td><span class="badge ${b}">${esc(r.status)}</span></td>`;
+        }
+        if (h === 'Шифр') return `<td class="code-cell">${esc(v)}</td>`;
+        return `<td${cls2 ? ` class="${cls2}"` : ''}>${esc(v)}</td>`;
+      }).join('') + '</tr>';
     }).join('') + '</tbody>';
 }
 $('status-filter').addEventListener('change', renderReport);
