@@ -1,0 +1,15 @@
+{
+  "name": "Проверка КС-2 и МАРКЕТ по договору",
+  "short_name": "КС-2 проверка",
+  "description": "Сверка единичных расценок КС-2 и формы МАРКЕТ с приложением к договору (PDF)",
+  "lang": "ru",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f6f8",
+  "theme_color": "#1a5fb4",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

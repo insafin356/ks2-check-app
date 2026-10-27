@@ -1,0 +1,16 @@
+import fs from 'fs';
+import path from 'path';
+const pdfjs = await import('../vendor/pdf.min.mjs');
+pdfjs.GlobalWorkerOptions.workerSrc = new URL('../vendor/pdf.worker.min.mjs', import.meta.url).href;
+const mod = await import('../js/pdf-contract.js');
+const { linesFromItems, extractRowsFromLines } = mod;
+const dir = String.raw`C:\Users\Инсаф\OneDrive\Desktop\РТ, Балтасинский район, д.Новая Салаусь, ул.Братьев Файзрахмановых, д.1`;
+const doc = await pdfjs.getDocument({ data: new Uint8Array(fs.readFileSync(path.join(dir, 'Договор на СМР № 518-26-с от 07.08.26.pdf'))) }).promise;
+const page = await doc.getPage(138);
+const tc = await page.getTextContent();
+const rows = extractRowsFromLines(linesFromItems(tc.items), 138);
+console.log('rows on page:', rows.length);
+const hit = rows.filter(r => r.code.includes('09-05-003'));
+console.log('hit:', JSON.stringify(hit, null, 1));
+rows.slice(0, 99).forEach(r => console.log(JSON.stringify({ row: r.row, code: r.code, unit: r.unit, price: r.price, name: r.name.slice(0, 40) })));
+console.log('exported?', Object.keys(mod).join(','));
