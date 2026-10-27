@@ -10,7 +10,30 @@ function styleRow(ws, row, cols, fill) {
   for (let c = 1; c <= cols; c++) {
     const addr = XLSX.utils.encode_cell({ r: row, c: c - 1 });
     if (!ws[addr]) ws[addr] = { t: 'z' };
-    ws[addr].s = { fill: { patternType: 'solid', fgColor: { rgb: fill } } };
+    ws[addr].s = {
+      fill: { patternType: 'solid', fgColor: { rgb: fill } },
+      alignment: { wrapText: true, vertical: 'center', horizontal: 'center' },
+    };
+  }
+}
+
+// Колонки «Наименование» и «Комментарий» — по левому краю, по середине,
+// остальные — по центру и по середине; везде перенос текста.
+const LEFT_COLS_ACT = [3, 7];
+const LEFT_COLS_MARKET = [3, 6];
+
+function applyAlignment(ws, lastRow, cols, leftCols) {
+  for (let r = 0; r <= lastRow; r++) {
+    for (let c = 1; c <= cols; c++) {
+      const addr = XLSX.utils.encode_cell({ r, c: c - 1 });
+      if (!ws[addr]) continue;
+      const s = ws[addr].s = ws[addr].s || {};
+      s.alignment = {
+        wrapText: true,
+        vertical: 'center',
+        horizontal: leftCols.includes(c) ? 'left' : 'center',
+      };
+    }
   }
 }
 
@@ -84,6 +107,7 @@ export function exportActReport(report, summary, tolerance) {
   }
   styleSummaryHead(ws);
   styleHeaderRow(ws, headers.length);
+  applyAlignment(ws, data.length, headers.length, LEFT_COLS_ACT);
   setColWidths(ws, [10, 20, 60, 10, 14, 28, 48, 14, 16, 18, 12]);
   applyNumberFormat(ws, PRICE_COLS_ACT, data.length + 1);
   ws['!autofilter'] = { ref: 'A1:' + XLSX.utils.encode_cell({ r: 0, c: headers.length - 1 }) };
@@ -130,6 +154,7 @@ export function exportMarketReport(report, summary, tolerance) {
   }
   styleSummaryHead(ws);
   styleHeaderRow(ws, headers.length);
+  applyAlignment(ws, data.length, headers.length, LEFT_COLS_MARKET);
   setColWidths(ws, [13, 20, 60, 14, 28, 48, 14, 60, 16, 20, 12]);
   applyNumberFormat(ws, PRICE_COLS_MARKET, data.length + 1);
   ws['!autofilter'] = { ref: 'A1:' + XLSX.utils.encode_cell({ r: 0, c: headers.length - 1 }) };
