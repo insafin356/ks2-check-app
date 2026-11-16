@@ -1,5 +1,5 @@
 /* Service worker: офлайн-кеш приложения и библиотек */
-const CACHE = 'rnmc-unified-icons-v1';
+const CACHE = 'rnmc-unified-icons-v2';
 const ASSETS = [
   './', './index.html', './manifest.json',
   './css/app.css',
@@ -10,7 +10,7 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS.map(url => new Request(url, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', e => {
