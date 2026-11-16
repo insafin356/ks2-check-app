@@ -28,7 +28,9 @@ applyTheme(theme);
 function applyTheme(t) {
   theme = t;
   document.documentElement.dataset.theme = t;
-  $('theme-toggle').textContent = t === 'dark' ? 'Светлая тема' : 'Тёмная тема';
+  $('theme-toggle').textContent = '◐';
+  $('theme-toggle').title = t === 'dark' ? 'Включить светлую тему' : 'Включить тёмную тему';
+  $('theme-toggle').setAttribute('aria-label', $('theme-toggle').title);
 }
 $('theme-toggle').addEventListener('click', () => {
   applyTheme(theme === 'dark' ? 'light' : 'dark');

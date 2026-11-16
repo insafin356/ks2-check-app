@@ -1,5 +1,5 @@
 /* Service worker: офлайн-кеш приложения и библиотек */
-const CACHE = 'rnmc-visual-review-20261116';
+const CACHE = 'rnmc-unified-icons-v1';
 const ASSETS = [
   './', './index.html', './manifest.json',
   './css/app.css',
