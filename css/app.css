@@ -335,3 +335,6 @@ tr.row-err { background: var(--err-bg); }
   .tab { animation: none; }
   .progress div, button { transition: none; }
 }
+
+/* RNMC visual alignment */
+body{background:var(--bg)}.card{border-radius:10px}button,input,select,textarea{border-radius:6px}h1{font-weight:600}
