@@ -1,5 +1,5 @@
 /* Service worker: офлайн-кеш приложения и библиотек */
-const CACHE = 'ks2-check-v15-rnmc';
+const CACHE = 'rnmc-visual-review-20261116';
 const ASSETS = [
   './', './index.html', './manifest.json',
   './css/app.css',
