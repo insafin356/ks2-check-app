@@ -1,6 +1,8 @@
 /* Парсинг договора из PDF через pdf.js — паритет BuildPdfPowerQueryFormula (Module1:3613) */
 import { normalizeText, looksLikeCode, tryParseNumber, firstToken, cleanVisibleText } from './norm.js';
 
+export const CONTRACT_PARSER_VERSION = 2;
+
 const UNIT_RE = /^(?:\d+\s*)?(?:м3|м2|м|км|т|кг|шт|стык|соединение|узел|участок|компл|ед|усл|смена|чел-ч|маш-см|ч|м\.кб|м\.кв|т\.км)$/i;
 
 function pageToText(items) {
@@ -143,6 +145,44 @@ export function extractRowsFromLines(lines, pageNumber) {
   return rows;
 }
 
+// Table rules delimit logical rows; text baselines do not.
+export function tableRowBoundaries(operatorList, OPS) {
+  const ys=[], stack=[];
+  let matrix=[1,0,0,1,0,0];
+  const point=(x,y)=>[matrix[0]*x+matrix[2]*y+matrix[4],matrix[1]*x+matrix[3]*y+matrix[5]];
+  const edge=(x,y,a,b)=>{const p=point(x,y),q=point(a,b);if(Math.abs(p[1]-q[1])<2&&Math.min(p[0],q[0])<160&&Math.max(p[0],q[0])>380)ys.push((p[1]+q[1])/2);};
+  for(let i=0;i<operatorList.fnArray.length;i++){
+    const fn=operatorList.fnArray[i],args=operatorList.argsArray[i];
+    if(fn===OPS.save){stack.push([...matrix]);continue;}
+    if(fn===OPS.restore){matrix=stack.pop()||[1,0,0,1,0,0];continue;}
+    if(fn===OPS.transform){const [a,b,c,d,e,f]=matrix,[g,h,j,k,l,m]=args;matrix=[a*g+c*h,b*g+d*h,a*j+c*k,b*j+d*k,a*l+c*m+e,b*l+d*m+f];continue;}
+    if(operatorList.fnArray[i]!==OPS.constructPath)continue;
+    const [ops,coords]=operatorList.argsArray[i];let k=0,x=0,y=0;
+    for(const op of ops){
+      if(op===OPS.rectangle){const [a,b,w,h]=coords.slice(k,k+4);k+=4;if(Math.abs(h)<2)edge(a,b+h/2,a+w,b+h/2);}
+      else if(op===OPS.moveTo){x=coords[k++];y=coords[k++];}
+      else if(op===OPS.lineTo){const a=coords[k++],b=coords[k++];edge(x,y,a,b);x=a;y=b;}
+      else if(op===OPS.curveTo)k+=6;
+      else if(op===OPS.curveTo2||op===OPS.curveTo3)k+=4;
+    }
+  }
+  return ys.sort((a,b)=>b-a).filter((v,i,a)=>!i||Math.abs(v-a[i-1])>2);
+}
+export function extractRowsFromBands(items,bounds){
+  const rows=[];
+  for(let i=0;i<bounds.length-1;i++){
+    const inside=items.filter(it=>it.transform[5]<bounds[i]&&it.transform[5]>bounds[i+1]);
+    const lines=linesFromItems(inside),parts=lines.map(l=>partsFromCells(l.cells)).filter(Boolean);
+    const code=parts.find(p=>p.code);
+    if(!code)continue;
+    const name=parts.map(p=>p.name).filter(Boolean).join(' ');
+    const unit=parts.map(p=>p.unit).filter(Boolean).join(' ');
+    const prices=parts.filter(p=>p.price!=null);
+    rows.push({code:code.code,name,unit,price:prices.length?prices[0].price:null});
+  }
+  return rows;
+}
+
 export async function parseContractPdf(data, onProgress) {
   const pdfjs = await import('../vendor/pdf.min.mjs');
   pdfjs.GlobalWorkerOptions.workerSrc = typeof window !== 'undefined'
@@ -179,7 +219,11 @@ export async function parseContractPdf(data, onProgress) {
   for (let p = startPage; p <= endPage && p <= doc.numPages; p++) {
     if (onProgress) onProgress(`Разбор таблиц договора, страница ${p}`, null);
     const lines = linesFromItems(pages[p - 1].items);
-    const pageRows = extractRowsFromLines(lines, p);
+    const page = await doc.getPage(p);
+    const boundaries = tableRowBoundaries(await page.getOperatorList(), pdfjs.OPS);
+    const pageRows = boundaries.length >= 2
+      ? extractRowsFromBands(pages[p - 1].items, boundaries)
+      : extractRowsFromLines(lines, p);
     for (const r of pageRows) {
       // Фильтр PQ: Обоснование не пустое и не "2"
       if (!r.code || r.code === '2') continue;
@@ -190,5 +234,5 @@ export async function parseContractPdf(data, onProgress) {
 
   const codes = rows.map(r => r.code.toLowerCase());
   if (!codes.some(c => hasSmr(c))) throw new Error('Найденная таблица не подтверждена строительными шифрами СМР.');
-  return { rows, meta: { startPage, endPage, pages: doc.numPages, appendix: startAppendix } };
+  return { rows, meta: { parserVersion: CONTRACT_PARSER_VERSION, startPage, endPage, pages: doc.numPages, appendix: startAppendix } };
 }

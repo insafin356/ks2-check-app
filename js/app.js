@@ -1,5 +1,5 @@
 ﻿/* Точка входа: вкладки, загрузка файлов, проверки, страницы позиций, отчёт */
-import { parseContractPdf } from './pdf-contract.js';
+import { parseContractPdf, CONTRACT_PARSER_VERSION } from './pdf-contract.js';
 import { parseActWorkbook } from './xlsx-act.js';
 import { parseMarketWorkbook } from './xlsx-market.js';
 import { compareAct } from './compare-act.js';
@@ -104,6 +104,14 @@ function rowCls(status) {
 
 /* ── Загрузка договора ──────────────────────────────────────── */
 
+async function invalidateReports() {
+  state.report = state.reportAct = state.reportMarket = null;
+  await Promise.all([kvSet('report-act', null), kvSet('report-market', null)]);
+  $('empty-state').style.display = '';
+  $('report-table').style.display = 'none';
+  $('summary').innerHTML = '';
+}
+
 $('file-contract').addEventListener('change', async e => {
   const file = e.target.files[0];
   if (!file) return;
@@ -117,6 +125,7 @@ $('file-contract').addEventListener('change', async e => {
     });
     state.contract = { rows, meta, fileName: file.name };
     await kvSet('contract', state.contract);
+    await invalidateReports();
     setProgress('contract-progress', null);
     setStatus('contract-status', `Загружено ${rows.length} договорных расценок СМР (страницы ${meta.startPage}–${meta.endPage}).`, 'success');
     $('contract-meta').textContent = `Всего страниц PDF: ${meta.pages}`;
@@ -170,6 +179,7 @@ $('file-market').addEventListener('change', async e => {
 
 async function runCheck(kind) {
   if (!state.contract) { alert('Сначала загрузите договор из PDF.'); gotoTab('check'); return; }
+  if (state.contract.meta.parserVersion !== CONTRACT_PARSER_VERSION) { alert('Обновлён разбор строк PDF. Загрузите исходный договор повторно и выполните сверку заново.'); gotoTab('check'); return; }
   if (kind === 'act' && !state.act) { alert('Сначала загрузите файл КС-2.'); return; }
   if (kind === 'market' && !state.market) { alert('Сначала загрузите файл Мастер-каталога.'); return; }
 

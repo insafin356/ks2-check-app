@@ -1,5 +1,5 @@
 /* Service worker: офлайн-кеш приложения и библиотек */
-const CACHE = 'rnmc-unified-icons-v2';
+const CACHE = 'ks2-pdf-rows-v3';
 const ASSETS = [
   './', './index.html', './manifest.json',
   './css/app.css',
