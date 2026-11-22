@@ -1,5 +1,5 @@
 ﻿/* Точка входа: вкладки, загрузка файлов, проверки, страницы позиций, отчёт */
-import { parseContractPdf, CONTRACT_PARSER_VERSION } from './pdf-contract.js?v=pdf-rows-4';
+import { parseContractPdf, CONTRACT_PARSER_VERSION } from './pdf-contract.js?v=pdf-rows-5';
 import { parseActWorkbook } from './xlsx-act.js';
 import { parseMarketWorkbook } from './xlsx-market.js';
 import { compareAct } from './compare-act.js';
@@ -407,6 +407,10 @@ $('btn-export').addEventListener('click', () => {
       if (key === 'report-act') state.reportAct = v; else state.reportMarket = v;
       if (!state.report) state.report = v;
     }
+  }
+  if (state.contract && state.contract.meta.parserVersion !== CONTRACT_PARSER_VERSION) {
+    await invalidateReports();
+    setStatus('contract-status', 'Обновлён разбор строк PDF. Загрузите исходный договор повторно и выполните сверку заново. Сохранённые исходные данные оставлены.', 'error');
   }
   renderPositionPages();
   renderStatusbar();
