@@ -109,7 +109,7 @@ export function exportActReport(report, summary, tolerance) {
   for (let r = 0; r < sumAoa.length; r++) {
     for (let c = 0; c < 2; c++) {
       const v = sumAoa[r][c];
-      if (v === undefined) continue;
+      if (v == null) continue;
       const addr = XLSX.utils.encode_cell({ r, c: c + 14 });
       ws[addr] = { t: typeof v === 'number' ? 'n' : 's', v };
     }
@@ -157,7 +157,7 @@ export function exportMarketReport(report, summary, tolerance) {
   for (let r = 0; r < sumAoa.length; r++) {
     for (let c = 0; c < 2; c++) {
       const v = sumAoa[r][c];
-      if (v === undefined) continue;
+      if (v == null) continue;
       const addr = XLSX.utils.encode_cell({ r, c: c + 14 });
       ws[addr] = { t: typeof v === 'number' ? 'n' : 's', v };
     }

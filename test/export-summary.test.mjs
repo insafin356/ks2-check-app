@@ -12,6 +12,7 @@ exportActReport([
   { actRow: 34, code: 'ГЭСН04-01-080-01', name: 'Демонтаж ГНБ', unit: 'шт', actPrice: 4511.63, status: 'ОК', note: '', contractRow: 530, contractPrintedRow: 529, contractPrice: 4511.64, diff: 0.01, duplicates: 1 },
 ], { ok: 1, priceTooHigh: 0, codeNotFound: 4, unitMismatch: 0, priceUnreadable: 0, ambiguous: 0, missingCode: 0, missingUnit: 0, missingName: 0, totalErrors: 4 }, 0.01);
 let sheet = workbook.Sheets['Отчет'];
+assert.equal(sheet.P1, undefined);
 assert.equal(sheet.H2.v, 529);
 assert.equal(sheet.O6.v, 'Не найдено в договоре');
 assert.equal(sheet.P6.v, 4);
