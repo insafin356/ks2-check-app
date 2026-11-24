@@ -55,6 +55,15 @@ function setColWidths(ws, widths) {
   ws['!cols'] = widths.map(w => ({ wch: w }));
 }
 
+function includeSummaryInSheet(ws, summaryRows) {
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  range.e.r = Math.max(range.e.r, summaryRows - 1);
+  range.e.c = Math.max(range.e.c, 15);
+  ws['!ref'] = XLSX.utils.encode_range(range);
+  ws['!cols'][14] = { wch: 32 };
+  ws['!cols'][15] = { wch: 38 };
+}
+
 const PRICE_COLS_ACT = ['I', 'J'];
 const PRICE_COLS_MARKET = ['I', 'J'];
 
@@ -109,6 +118,7 @@ export function exportActReport(report, summary, tolerance) {
   styleHeaderRow(ws, headers.length);
   applyAlignment(ws, data.length, headers.length, LEFT_COLS_ACT);
   setColWidths(ws, [10, 20, 60, 10, 14, 28, 48, 14, 16, 18, 12]);
+  includeSummaryInSheet(ws, sumAoa.length);
   applyNumberFormat(ws, PRICE_COLS_ACT, data.length + 1);
   ws['!autofilter'] = { ref: 'A1:' + XLSX.utils.encode_cell({ r: 0, c: headers.length - 1 }) };
 
@@ -156,6 +166,7 @@ export function exportMarketReport(report, summary, tolerance) {
   styleHeaderRow(ws, headers.length);
   applyAlignment(ws, data.length, headers.length, LEFT_COLS_MARKET);
   setColWidths(ws, [13, 20, 60, 14, 28, 48, 14, 60, 16, 20, 12]);
+  includeSummaryInSheet(ws, sumAoa.length);
   applyNumberFormat(ws, PRICE_COLS_MARKET, data.length + 1);
   ws['!autofilter'] = { ref: 'A1:' + XLSX.utils.encode_cell({ r: 0, c: headers.length - 1 }) };
 
