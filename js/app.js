@@ -8,6 +8,7 @@ import { exportActReport, exportMarketReport } from './report-export.js';
 import { kvSet, kvGet, historyAdd } from './store.js';
 
 const $ = id => document.getElementById(id);
+const ACT_COMPARISON_VERSION = 2;
 const SLICE = 200;
 
 let state = {
@@ -200,7 +201,8 @@ async function runCheck(kind) {
   const res = kind === 'act'
     ? compareAct(state.contract.rows, state.act.rows, tolerance)
     : compareMarket(state.contract.rows, state.market.rows, tolerance);
-  const stored = { kind, report: res.report, summary: res.summary, tolerance };
+  const stored = { kind, report: res.report, summary: res.summary, tolerance,
+    comparisonVersion: kind === 'act' ? ACT_COMPARISON_VERSION : undefined };
   state.report = stored;
   if (kind === 'act') { state.reportAct = stored; await kvSet('report-act', stored); }
   else { state.reportMarket = stored; await kvSet('report-market', stored); }
@@ -417,6 +419,11 @@ $('btn-export').addEventListener('click', () => {
   for (const key of ['report-act', 'report-market']) {
     const v = await kvGet(key);
     if (v) {
+      if (key === 'report-act' && v.comparisonVersion !== ACT_COMPARISON_VERSION) {
+        await kvSet(key, null);
+        setStatus('act-status', 'Правило сравнения единиц измерения обновлено. Повторите сверку КС-2 для актуального отчёта.', 'success');
+        continue;
+      }
       if (key === 'report-act') state.reportAct = v; else state.reportMarket = v;
       if (!state.report) state.report = v;
     }

@@ -3,17 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>КС-2 - INSAFIN</title><link rel="icon" sizes="any" href="./favicon.ico?v=2">
-
+<title>Проверка КС-2 и Мастер-каталог по договору</title>
+<link rel="manifest" href="manifest.json">
 <link rel="stylesheet" href="css/app.css">
-  <link rel="manifest" href="./manifest.json">
-  <link rel="icon" type="image/png" href="./icons/icon-192.png">
-  <link rel="apple-touch-icon" href="./icons/icon-192.png">
 </head>
 <body>
 <header class="app-header">
   <div class="hdr-row">
-    <img src="./icons/icon-192.png" width="44" height="44" alt="" style="border-radius:10px;flex:none;vertical-align:middle">
+    <div class="logo" aria-hidden="true"></div>
     <div class="hdr-title">
       <h1>Сверка единичных расценок</h1>
     </div>
@@ -126,7 +123,7 @@
 </main>
 
 <script src="vendor/xlsx-js-style.js"></script>
-<script type="module" src="js/app.js?v=unit-compare-1"></script>
+<script type="module" src="js/app.js?v=unit-compare-2"></script>
 <script>
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
     .then(reg => {
