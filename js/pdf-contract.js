@@ -1,7 +1,7 @@
 /* Парсинг договора из PDF через pdf.js — паритет BuildPdfPowerQueryFormula (Module1:3613) */
 import { normalizeText, looksLikeCode, tryParseNumber, firstToken, cleanVisibleText } from './norm.js';
 
-export const CONTRACT_PARSER_VERSION = 3;
+export const CONTRACT_PARSER_VERSION = 4;
 
 const UNIT_RE = /^(?:\d+\s*)?(?:м3|м2|м|км|т|кг|шт|стык|соединение|узел|участок|компл|ед|усл|смена|чел-ч|маш-см|ч|м\.кб|м\.кв|т\.км)$/i;
 
@@ -186,6 +186,37 @@ export function extractRowsFromBands(items,bounds){
   return rows;
 }
 
+// Some contract appendices use a wider table: the description begins at x≈210,
+// the unit at x≈565, and the four price columns begin after x≈610. PDF text
+// may place the row number and code on one baseline, so use column geometry
+// inside each ruled band instead of visual-line clusters.
+export function extractRowsFromWideBands(items, bounds) {
+  const rows = [];
+  for (let i = 0; i < bounds.length - 1; i++) {
+    const inside = items.filter(it => it.transform[5] < bounds[i] && it.transform[5] > bounds[i + 1]);
+    const numberItem = inside.find(it => it.transform[4] >= 50 && it.transform[4] < 68 && /^\d{1,4}$/.test(it.str.trim()));
+    if (!numberItem) continue;
+    const column = (left, right) => linesFromItems(inside.filter(it => it.transform[4] >= left && it.transform[4] < right))
+      .map(line => line.cells.map(cell => cell.text.trim()).filter(Boolean).join(' ')).filter(Boolean);
+    const codeLines = column(69, 205);
+    const nameLines = column(205, 555);
+    const unitLines = column(555, 610);
+    const prices = inside.filter(it => it.transform[4] >= 610)
+      .map(it => ({ x: it.transform[4], text: it.str.trim(), parsed: tryParseNumber(it.str) }))
+      .filter(it => it.parsed.ok && /[,\.]\d{2}$/.test(it.text))
+      .sort((a, b) => a.x - b.x);
+    // The source can leave the unit cell empty (for example pipe positions).
+    if (!codeLines.length || !nameLines.length || prices.length < 2) continue;
+    const firstCode = codeLines[0];
+    // The repeated numbered header has "2" in the code column.
+    if (/^\d$/.test(firstCode)) continue;
+    const code = looksLikeCode(firstToken(firstCode)) ? firstToken(firstCode) : codeLines.join(' ');
+    rows.push({ code, name: nameLines.join(' '), unit: unitLines.join(' '),
+      price: prices[1].parsed.value, printedRow: Number(numberItem.str.trim()) });
+  }
+  return rows;
+}
+
 export async function parseContractPdf(data, onProgress) {
   const pdfjs = await import('../vendor/pdf.min.mjs');
   pdfjs.GlobalWorkerOptions.workerSrc = typeof window !== 'undefined'
@@ -207,6 +238,7 @@ export async function parseContractPdf(data, onProgress) {
   const cands = primary.length ? primary : fallback;
   if (!cands.length) throw new Error('Не найдена таблица с заголовками расценок и строительными шифрами ГЭСН / ФЕР / ТЕР.');
   const startPage = Math.min(...cands.map(x => x.n));
+  const wideTable = pages[startPage - 1].items.some(it => it.transform[4] > 500 && /ед\.\s*изм/i.test(it.str));
 
   const startAppendix = appendixNumberFromHeading(pages[startPage - 1].text);
   const endCandidates = pages.map((pg, i) => ({ n: i + 1, app: appendixNumberFromHeading(pg.text) }))
@@ -225,8 +257,9 @@ export async function parseContractPdf(data, onProgress) {
     const page = await doc.getPage(p);
     const boundaries = tableRowBoundaries(await page.getOperatorList(), pdfjs.OPS);
     const pageRows = boundaries.length >= 2
-      ? extractRowsFromBands(pages[p - 1].items, boundaries)
-      : extractRowsFromLines(lines, p);
+      ? (wideTable ? extractRowsFromWideBands(pages[p - 1].items, boundaries)
+        : extractRowsFromBands(pages[p - 1].items, boundaries))
+      : (wideTable ? [] : extractRowsFromLines(lines, p));
     for (const r of pageRows) {
       // Фильтр PQ: Обоснование не пустое и не "2"
       if (!r.code || r.code === '2') continue;

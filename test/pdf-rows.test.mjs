@@ -18,7 +18,7 @@ if(process.argv[2]){
  assert.doesNotMatch(result.rows[30].name,/На каждые/);
  assert.match(result.rows[35].name,/группа грунтов: 2$/);
  assert.doesNotMatch(result.rows[35].name,/Раздел/);
- assert.equal(result.meta.parserVersion,3);
+ assert.equal(result.meta.parserVersion,4);
  assert.equal(result.rows.find(r=>r.row===530).printedRow,529);
  console.log('Real PDF: positions 31–47, names, prices, count and parser version passed.');
 }
