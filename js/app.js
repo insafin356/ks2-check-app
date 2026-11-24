@@ -2,13 +2,13 @@
 import { parseContractPdf, CONTRACT_PARSER_VERSION } from './pdf-contract.js?v=duplicate-match-1';
 import { parseActWorkbook, ACT_PARSER_VERSION } from './xlsx-act.js?v=act-rows-2';
 import { parseMarketWorkbook } from './xlsx-market.js';
-import { compareAct } from './compare-act.js?v=duplicate-match-1';
+import { compareAct } from './compare-act.js?v=match-all-4';
 import { compareMarket } from './compare-market.js';
 import { exportActReport, exportMarketReport } from './report-export.js?v=duplicate-match-3';
 import { kvSet, kvGet, historyAdd } from './store.js';
 
 const $ = id => document.getElementById(id);
-const ACT_COMPARISON_VERSION = 3;
+const ACT_COMPARISON_VERSION = 4;
 const SLICE = 200;
 
 let state = {
@@ -423,7 +423,7 @@ $('btn-export').addEventListener('click', () => {
     if (v) {
       if (key === 'report-act' && v.comparisonVersion !== ACT_COMPARISON_VERSION) {
         await kvSet(key, null);
-        setStatus('act-status', 'Правило сравнения единиц измерения обновлено. Повторите сверку КС-2 для актуального отчёта.', 'success');
+        setStatus('act-status', 'Правила сопоставления обновлены. Повторите сверку КС-2 для актуального отчёта.', 'success');
         continue;
       }
       if (key === 'report-act') state.reportAct = v; else state.reportMarket = v;

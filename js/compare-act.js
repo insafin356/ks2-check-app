@@ -34,8 +34,38 @@ function workNameKey(name) {
   return compactMatchText(name.replace(/\s*\(\s*письмо\s+пао.*$/i, ''));
 }
 
+function editDistanceWithin(a, b, limit = 2) {
+  if (Math.abs(a.length - b.length) > limit) return false;
+  const prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    let old = prev[0], best = prev[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const current = prev[j];
+      prev[j] = Math.min(prev[j] + 1, prev[j - 1] + 1, old + (a[i - 1] === b[j - 1] ? 0 : 1));
+      old = current;
+      best = Math.min(best, prev[j]);
+    }
+    if (best > limit) return false;
+  }
+  return prev[b.length] <= limit;
+}
+
+function materialKind(name) {
+  const s = cleanVisibleText(name).toLowerCase();
+  if (/^бентонит|^гранулы бентонитовые/u.test(s)) return 'бентонит';
+  if (/^(?:био)?полимер/u.test(s)) return 'полимер';
+  return null;
+}
+
+function unitFactor(from, to) {
+  if (from === to) return 1;
+  if (from === 'т' && to === 'кг') return 1 / 1000;
+  if (from === 'кг' && to === 'т') return 1000;
+  return null;
+}
+
 export function compareAct(contractRows, actRows, tolerance) {
-  const dictCodeUnit = new Map(), dictExactName = new Map(), dictNameUnit = new Map(), dictCode = new Map(), candidatesByCodeUnit = new Map();
+  const dictCodeUnit = new Map(), dictExactName = new Map(), dictNameUnit = new Map(), dictCode = new Map(), candidatesByCodeUnit = new Map(), materialCandidates = [];
 
   for (const c of contractRows) {
     const code = normalizeComparisonCode(c.code);
@@ -49,6 +79,8 @@ export function compareAct(contractRows, actRows, tolerance) {
         key: workNameKey(name),
         group: { row: c.row, displayRow: c.printedRow ?? c.row, maxPrice: p.value, minPrice: p.value, count: 1, name, prices: '|' + priceKey(p.value) + '|' },
       });
+      const kind = materialKind(name);
+      if (kind) materialCandidates.push({ kind, unit, row: c.row, printedRow: c.printedRow ?? c.row, price: p.value, name });
       addContractGroup(dictCodeUnit, keyCodeUnit, c.row, p.value, name, c.printedRow ?? c.row);
       addContractGroup(dictExactName, code + '|' + compactMatchText(name) + '|' + unit, c.row, p.value, name, c.printedRow ?? c.row);
       const keyNameUnit = compactMatchText(name) + '|' + unit;
@@ -82,7 +114,11 @@ export function compareAct(contractRows, actRows, tolerance) {
 
       if (isCommercialProposalCode(code)) {
         const keyNameUnit = compactMatchText(name) + '|' + unit;
-        let g = dictNameUnit.get(keyNameUnit);
+        const kpRows = candidatesByCodeUnit.get(keyCodeUnit) || [];
+        const normalizedName = workNameKey(name);
+        const close = kpRows.filter(x => x.key === normalizedName ||
+          (normalizedName.length >= 80 && x.key.length >= 80 && editDistanceWithin(normalizedName, x.key)));
+        let g = close.length === 1 ? close[0].group : dictNameUnit.get(keyNameUnit);
         if (!g) {
           // Расширенный подбор КП: в акте к наименованию часто добавлен суффикс
           // вида «(Письмо ПАО "Газпром" …)», в договоре — технический префикс
@@ -124,7 +160,18 @@ export function compareAct(contractRows, actRows, tolerance) {
       } else if (dictCode.has(code)) {
         status = 'НЕ СОВПАДАЕТ ЕД. ИЗМ.'; note = 'Шифр найден в договоре, но единица измерения не совпала.'; sum.unitMismatch++;
       } else {
-        status = 'ШИФР НЕ НАЙДЕН'; note = 'Шифр из акта отсутствует в договорных единичных расценках.'; sum.codeNotFound++;
+        const kind = materialKind(name);
+        const candidates = kind ? materialCandidates.filter(c => {
+          const factor = unitFactor(c.unit, unit);
+          return c.kind === kind && factor != null;
+        }) : [];
+        if (candidates.length === 1) {
+          const c = candidates[0], converted = c.price * unitFactor(c.unit, unit);
+          contract = { row: c.row, displayRow: c.printedRow, maxPrice: converted, minPrice: converted, count: 1, name: c.name, prices: '|' + priceKey(converted) + '|' };
+          note = `Материал сопоставлен по виду и наименованию; шифр договора отличается; цена договора пересчитана из ${c.unit} в ${a.unit}; `;
+        } else {
+          status = 'ШИФР НЕ НАЙДЕН'; note = 'Шифр из акта отсутствует в договорных единичных расценках.'; sum.codeNotFound++;
+        }
       }
 
       if (contract) {
