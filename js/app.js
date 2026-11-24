@@ -1,6 +1,6 @@
 ﻿/* Точка входа: вкладки, загрузка файлов, проверки, страницы позиций, отчёт */
 import { parseContractPdf, CONTRACT_PARSER_VERSION } from './pdf-contract.js?v=wide-contract-1';
-import { parseActWorkbook, ACT_PARSER_VERSION } from './xlsx-act.js?v=act-rows-2';
+import { parseActWorkbook, ACT_PARSER_VERSION } from './xlsx-act.js?v=act-rows-3';
 import { parseMarketWorkbook } from './xlsx-market.js';
 import { compareAct } from './compare-act.js?v=blank-unit-1';
 import { compareMarket } from './compare-market.js';

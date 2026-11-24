@@ -5,11 +5,25 @@ let r=parse([header,[1,'ГЭСН01-01-009-14','Работа','1000 м3',75870.84
 assert.equal(r.rows.length,4);assert.equal(r.rows[1].code,'24.3.03.11-0015-0001');assert.equal(r.rows[2].code,'');assert.equal(r.rows[3].price,null);
 r=parse([header.slice(1),['ГЭСН01-01-009-14','Работа','1000 м3',75870.84]]);assert.equal(r.rows.length,1);assert.equal(r.meta.cols.position,null);
 r=parse([['Служебная',...header],['x',1,'ГЭСН01-01-009-14','Работа','1000 м3',75870.84],['x',null,'1. 91.01.05-085','Ресурс','маш.час',2740.86]]);assert.equal(r.rows.length,1);assert.equal(r.meta.cols.position,2);
+r=parse([
+ ['№ п/п','Обоснование','Наименование работ и затрат',null,'Единица измерения',null,null,'Цена за единицу'],
+ [1,2,3,null,4,5,6,7,8,9,10],
+ [null,'Раздел 1. Земляные работы'],
+ [1,'ГЭСН01-01-009-14','Работа',null,'1000 м3',null,null,75870.84],
+ [1,2,3,null,4,5,6,7,8,9,10],
+ [2,'ГЭСН01-02-057-02','Другая работа',null,'100 м3',null,null,67753.59],
+]);
+assert.equal(r.rows.length,2);
+assert.equal(r.rows[0].position,1);
+assert.equal(r.rows[0].srcRow,4);
+assert.equal(r.rows[0].code,'ГЭСН01-01-009-14');
+assert.equal(r.rows[1].position,2);
+assert.equal(r.rows[1].srcRow,6);
 if(process.argv[2]){
  const data=fs.readFileSync(process.argv[2]),book=X.read(data),actual=parseActWorkbook(data),ws=book.Sheets[actual.meta.sheet];
  const expected=[];for(let i=30;i<=840;i++){if(Number.isInteger(ws['A'+i]?.v)){expected.push({position:ws['A'+i].v,srcRow:i,code:ws['C'+i]?.v?.split(/\r?\n/)[0],name:String(ws['D'+i]?.v??'').replace(/\r?\n/g,' ').replace(/\s+/g,' ').trim(),unit:ws['E'+i]?.v,price:ws['H'+i]?.v});}}
  assert.equal(actual.rows.length,189);assert.equal(expected.length,189);
  for(let i=0;i<189;i++){const a=actual.rows[i],e=expected[i];assert.equal(a.position,i+1);for(const k of ['srcRow','code','name','unit','price'])assert.equal(a[k],e[k],`position ${i+1} ${k}`);}
- assert.equal(actual.meta.parserVersion,2); console.log('All 189 original positions: order, source rows, codes, names, units and prices verified.');
+ assert.equal(actual.meta.parserVersion,3); console.log('All 189 original positions: order, source rows, codes, names, units and prices verified.');
 }
 console.log('Act import regression tests passed.');

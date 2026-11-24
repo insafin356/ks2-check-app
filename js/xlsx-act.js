@@ -6,7 +6,7 @@ import {
 import * as XLSX from '../vendor/xlsx.mjs';
 
 const HEADER_WINDOW = 10, MAX_SCAN_ROWS = 300, VALIDATION_ROWS = 150;
-export const ACT_PARSER_VERSION = 2;
+export const ACT_PARSER_VERSION = 3;
 const MIN = { code: 80, name: 80, unit: 80, price: 65 };
 
 // ScoreCodeHeader (Module1:3179)
@@ -154,8 +154,19 @@ function positionNumber(v) {
   return /^\d+\.?$/.test(text) && Number(text) > 0 ? Number(text) : null;
 }
 
-function isColumnNumberRow(ws, r, cols) {
-  return cols.every(c => Number(ws[encode(r, c)]?.v) === c + 1);
+function isColumnNumberRow(ws, r) {
+  // A printed KS-2 header contains the sequence 1, 2, 3, ... across its
+  // non-empty cells. Merged columns mean these numbers need not match Excel
+  // column indices (for example the price may be in H but labelled "7").
+  const values = [];
+  for (let c = 0; c <= lastUsedCol(ws); c++) {
+    const raw = ws[encode(r, c)]?.v;
+    if (raw == null || String(raw).trim() === '') continue;
+    const text = String(raw).trim();
+    if (!/^\d{1,2}$/.test(text)) return false;
+    values.push(Number(text));
+  }
+  return values.length >= 4 && values.every((value, index) => value === index + 1);
 }
 
 // Возврат: { rows, sheet, cols, headerRow }
@@ -189,7 +200,7 @@ export function parseActWorkbook(data) {
   let outRow = 1, loaded = 0, skipped = 0;
   for (let r = startRow; r <= lastUsedRow(ws); r++) {
     const position = positionCol == null ? null : positionNumber(ws[encode(r, positionCol)]?.v);
-    if (positionCol != null && (position == null || isColumnNumberRow(ws, r, [colCode, colName, colUnit, colPrice]))) {
+    if (isColumnNumberRow(ws, r) || (positionCol != null && position == null)) {
       skipped++;
       continue;
     }
