@@ -6,6 +6,7 @@ import {
 import * as XLSX from '../vendor/xlsx.mjs';
 
 const HEADER_WINDOW = 10, MAX_SCAN_ROWS = 300, VALIDATION_ROWS = 150;
+export const ACT_PARSER_VERSION = 2;
 const MIN = { code: 80, name: 80, unit: 80, price: 65 };
 
 // ScoreCodeHeader (Module1:3179)
@@ -137,6 +138,26 @@ function tryFindActLayout(ws) {
 
 function encode(r, c) { return XLSX.utils.encode_cell({ r, c }); }
 
+// Resource breakdown rows have no number in the act's "по порядку" column.
+// Detect that column by its header, not by a hardcoded A-column assumption.
+function findPositionColumn(ws, headerRow, codeCol) {
+  for (let c = 0; c < codeCol; c++) {
+    const text = buildColumnHeaderText(ws, Math.max(0, headerRow - HEADER_WINDOW), headerRow + HEADER_WINDOW, c);
+    const key = compactHeaderKey(text);
+    if (key.includes('попорядку') || /№\s*п\s*[/.]\s*п/i.test(text)) return c;
+  }
+  return null;
+}
+
+function positionNumber(v) {
+  const text = String(v ?? '').trim();
+  return /^\d+\.?$/.test(text) && Number(text) > 0 ? Number(text) : null;
+}
+
+function isColumnNumberRow(ws, r, cols) {
+  return cols.every(c => Number(ws[encode(r, c)]?.v) === c + 1);
+}
+
 // Возврат: { rows, sheet, cols, headerRow }
 export function parseActWorkbook(data) {
   const wb = XLSX.read(data, { type: 'array', cellDates: false });
@@ -164,16 +185,22 @@ export function parseActWorkbook(data) {
   }
 
   const rows = [];
+  const positionCol = findPositionColumn(ws, best.headerRow, colCode);
   let outRow = 1, loaded = 0, skipped = 0;
   for (let r = startRow; r <= lastUsedRow(ws); r++) {
+    const position = positionCol == null ? null : positionNumber(ws[encode(r, positionCol)]?.v);
+    if (positionCol != null && (position == null || isColumnNumberRow(ws, r, [colCode, colName, colUnit, colPrice]))) {
+      skipped++;
+      continue;
+    }
     const code = extractCodeFromCell(ws[encode(r, colCode)]?.v);
     const nm = cleanVisibleText(ws[encode(r, colName)]?.v);
     const unit = cleanVisibleText(ws[encode(r, colUnit)]?.v);
     const p = tryParseNumber(ws[encode(r, colPrice)]?.v);
-    if (isActDataRow(code, nm, unit, p.ok)) {
-      rows.push({ row: outRow, srcRow: r + 1, sheet: bestSheet, code, name: nm, unit, price: p.ok ? p.value : null });
+    if (positionCol != null || isActDataRow(code, nm, unit, p.ok)) {
+      rows.push({ row: outRow, position, srcRow: r + 1, sheet: bestSheet, code, name: nm, unit, price: p.ok ? p.value : null });
       outRow++; loaded++;
     } else skipped++;
   }
-  return { rows, meta: { sheet: bestSheet, cols: { code: colCode + 1, name: colName + 1, unit: colUnit + 1, price: colPrice + 1 }, headerRow: startRow + 1, loaded, skipped } };
+  return { rows, meta: { parserVersion: ACT_PARSER_VERSION, sheet: bestSheet, cols: { code: colCode + 1, name: colName + 1, unit: colUnit + 1, price: colPrice + 1, position: positionCol == null ? null : positionCol + 1 }, headerRow: startRow + 1, loaded, skipped } };
 }

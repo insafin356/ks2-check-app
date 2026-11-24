@@ -1,6 +1,6 @@
 ﻿/* Точка входа: вкладки, загрузка файлов, проверки, страницы позиций, отчёт */
 import { parseContractPdf, CONTRACT_PARSER_VERSION } from './pdf-contract.js?v=pdf-rows-5';
-import { parseActWorkbook } from './xlsx-act.js';
+import { parseActWorkbook, ACT_PARSER_VERSION } from './xlsx-act.js?v=act-rows-2';
 import { parseMarketWorkbook } from './xlsx-market.js';
 import { compareAct } from './compare-act.js';
 import { compareMarket } from './compare-market.js';
@@ -112,6 +112,17 @@ async function invalidateReports() {
   $('summary').innerHTML = '';
 }
 
+async function invalidateActReport() {
+  state.reportAct = null;
+  await kvSet('report-act', null);
+  if (state.report?.kind === 'act') {
+    state.report = null;
+    $('empty-state').style.display = '';
+    $('report-table').style.display = 'none';
+    $('summary').innerHTML = '';
+  }
+}
+
 $('file-contract').addEventListener('change', async e => {
   const file = e.target.files[0];
   if (!file) return;
@@ -148,6 +159,7 @@ $('file-act').addEventListener('change', async e => {
     const parsed = parseActWorkbook(await readFile(file));
     state.act = { ...parsed, fileName: file.name };
     await kvSet('act', state.act);
+    await invalidateActReport();
     setStatus('act-status', `Акт загружен: ${parsed.rows.length} позиций (лист «${parsed.meta.sheet}»), пропущено строк: ${parsed.meta.skipped}.`, 'success');
     $('act-meta').textContent = `Колонки: обоснование — ${parsed.meta.cols.code}, наименование — ${parsed.meta.cols.name}, ед.изм. — ${parsed.meta.cols.unit}, цена — ${parsed.meta.cols.price}; первая строка данных: ${parsed.meta.headerRow}`;
     renderPositionPages();
@@ -184,6 +196,7 @@ async function runCheck(kind) {
   if (kind === 'market' && !state.market) { alert('Сначала загрузите файл Мастер-каталога.'); return; }
 
   const tolerance = parseFloat($('tolerance').value) || 0;
+  if (kind === 'act' && state.act.meta.parserVersion !== ACT_PARSER_VERSION) { alert('Обновлён импорт позиций КС-2. Загрузите исходный Excel повторно и выполните сверку заново.'); gotoTab('check'); return; }
   const res = kind === 'act'
     ? compareAct(state.contract.rows, state.act.rows, tolerance)
     : compareMarket(state.contract.rows, state.market.rows, tolerance);
@@ -411,6 +424,10 @@ $('btn-export').addEventListener('click', () => {
   if (state.contract && state.contract.meta.parserVersion !== CONTRACT_PARSER_VERSION) {
     await invalidateReports();
     setStatus('contract-status', 'Обновлён разбор строк PDF. Загрузите исходный договор повторно и выполните сверку заново. Сохранённые исходные данные оставлены.', 'error');
+  }
+  if (state.act && state.act.meta.parserVersion !== ACT_PARSER_VERSION) {
+    await invalidateActReport();
+    setStatus('act-status', 'Обновлён импорт позиций КС-2. Загрузите исходный Excel повторно и выполните сверку заново. Сохранённые исходные данные оставлены.', 'error');
   }
   renderPositionPages();
   renderStatusbar();
