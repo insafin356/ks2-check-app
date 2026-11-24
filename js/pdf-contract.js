@@ -1,7 +1,7 @@
 /* Парсинг договора из PDF через pdf.js — паритет BuildPdfPowerQueryFormula (Module1:3613) */
 import { normalizeText, looksLikeCode, tryParseNumber, firstToken, cleanVisibleText } from './norm.js';
 
-export const CONTRACT_PARSER_VERSION = 2;
+export const CONTRACT_PARSER_VERSION = 3;
 
 const UNIT_RE = /^(?:\d+\s*)?(?:м3|м2|м|км|т|кг|шт|стык|соединение|узел|участок|компл|ед|усл|смена|чел-ч|маш-см|ч|м\.кб|м\.кв|т\.км)$/i;
 
@@ -175,10 +175,13 @@ export function extractRowsFromBands(items,bounds){
     const lines=linesFromItems(inside),parts=lines.map(l=>partsFromCells(l.cells)).filter(Boolean);
     const code=parts.find(p=>p.code);
     if(!code)continue;
+    const codeItem=inside.find(it=>it.str.trim()===code.code);
+    const printedRow=codeItem ? (inside.filter(it=>it.transform[4]>45&&it.transform[4]<75&&/^\d{1,4}$/.test(it.str.trim())&&Math.abs(it.transform[5]-codeItem.transform[5])<2)
+      .map(it=>Number(it.str.trim()))[0] ?? null) : null;
     const name=parts.map(p=>p.name).filter(Boolean).join(' ');
     const unit=parts.map(p=>p.unit).filter(Boolean).join(' ');
     const prices=parts.filter(p=>p.price!=null);
-    rows.push({code:code.code,name,unit,price:prices.length?prices[0].price:null});
+    rows.push({code:code.code,name,unit,price:prices.length?prices[0].price:null,printedRow});
   }
   return rows;
 }
@@ -228,7 +231,7 @@ export async function parseContractPdf(data, onProgress) {
       // Фильтр PQ: Обоснование не пустое и не "2"
       if (!r.code || r.code === '2') continue;
       rowIndex++;
-      rows.push({ row: rowIndex, code: r.code, name: cleanVisibleText(r.name), unit: r.unit, price: r.price, source: `стр. ${p}` });
+      rows.push({ row: rowIndex, printedRow: r.printedRow ?? null, code: r.code, name: cleanVisibleText(r.name), unit: r.unit, price: r.price, source: `стр. ${p}` });
     }
   }
 

@@ -4,13 +4,13 @@ import { normalizeUnit, cleanVisibleText, normalizeComparisonCode, compactMatchT
 const EPS = 1e-7;
 
 // AddContractGroup (Module1:2335): [row, maxPrice, count, name, minPrice, prices]
-export function addContractGroup(dict, key, row, price, displayName) {
+export function addContractGroup(dict, key, row, price, displayName, displayRow = row) {
   const token = '|' + priceKey(price) + '|';
   if (!dict.has(key)) {
-    dict.set(key, { row, maxPrice: price, count: 1, name: displayName, minPrice: price, prices: token });
+    dict.set(key, { row, displayRow, maxPrice: price, count: 1, name: displayName, minPrice: price, prices: token });
   } else {
     const g = dict.get(key);
-    if (price > g.maxPrice) { g.row = row; g.maxPrice = price; g.name = displayName; }
+    if (price > g.maxPrice) { g.row = row; g.displayRow = displayRow; g.maxPrice = price; g.name = displayName; }
     if (price < g.minPrice) g.minPrice = price;
     g.count += 1;
     if (!g.prices.includes(token)) g.prices += token.slice(1);
@@ -29,8 +29,13 @@ function priceListContainsTolerance(prices, value, tolerance) {
   });
 }
 
+function workNameKey(name) {
+  // Пояснение об индексах в КС-2 добавлено к названию работы; в PDF его нет.
+  return compactMatchText(name.replace(/\s*\(\s*письмо\s+пао.*$/i, ''));
+}
+
 export function compareAct(contractRows, actRows, tolerance) {
-  const dictCodeUnit = new Map(), dictExactName = new Map(), dictNameUnit = new Map(), dictCode = new Map();
+  const dictCodeUnit = new Map(), dictExactName = new Map(), dictNameUnit = new Map(), dictCode = new Map(), candidatesByCodeUnit = new Map();
 
   for (const c of contractRows) {
     const code = normalizeComparisonCode(c.code);
@@ -38,11 +43,17 @@ export function compareAct(contractRows, actRows, tolerance) {
     const unit = normalizeUnit(c.unit);
     const p = tryParseNumber(c.price);
     if (code && unit && p.ok) {
-      addContractGroup(dictCodeUnit, code + '|' + unit, c.row, p.value, name);
-      addContractGroup(dictExactName, code + '|' + compactMatchText(name) + '|' + unit, c.row, p.value, name);
+      const keyCodeUnit = code + '|' + unit;
+      if (!candidatesByCodeUnit.has(keyCodeUnit)) candidatesByCodeUnit.set(keyCodeUnit, []);
+      candidatesByCodeUnit.get(keyCodeUnit).push({
+        key: workNameKey(name),
+        group: { row: c.row, displayRow: c.printedRow ?? c.row, maxPrice: p.value, minPrice: p.value, count: 1, name, prices: '|' + priceKey(p.value) + '|' },
+      });
+      addContractGroup(dictCodeUnit, keyCodeUnit, c.row, p.value, name, c.printedRow ?? c.row);
+      addContractGroup(dictExactName, code + '|' + compactMatchText(name) + '|' + unit, c.row, p.value, name, c.printedRow ?? c.row);
       const keyNameUnit = compactMatchText(name) + '|' + unit;
-      if (keyNameUnit !== '|') addContractGroup(dictNameUnit, keyNameUnit, c.row, p.value, name);
-      if (!dictCode.has(code)) dictCode.set(code, { row: c.row, maxPrice: p.value, count: 1, name, minPrice: p.value, prices: '|' + priceKey(p.value) + '|' });
+      if (keyNameUnit !== '|') addContractGroup(dictNameUnit, keyNameUnit, c.row, p.value, name, c.printedRow ?? c.row);
+      if (!dictCode.has(code)) dictCode.set(code, { row: c.row, displayRow: c.printedRow ?? c.row, maxPrice: p.value, count: 1, name, minPrice: p.value, prices: '|' + priceKey(p.value) + '|' });
     }
   }
 
@@ -55,7 +66,7 @@ export function compareAct(contractRows, actRows, tolerance) {
     const unit = normalizeUnit(a.unit);
     const p = tryParseNumber(a.price);
 
-    let status = '', note = '', contract = null, matchedByName = false, nameMismatch = false;
+    let status = '', note = '', contract = null, matchedByName = false, nameMismatch = false, matchedUniqueName = false;
 
     if (!code) {
       status = 'ОТСУТСТВУЕТ ШИФР'; note = 'В позиции акта не заполнено обоснование / шифр расценки.'; sum.missingCode++;
@@ -66,6 +77,8 @@ export function compareAct(contractRows, actRows, tolerance) {
     } else {
       const keyCodeUnit = code + '|' + unit;
       const keyExact = code + '|' + compactMatchText(name) + '|' + unit;
+      const exactCandidates = (candidatesByCodeUnit.get(keyCodeUnit) || []).filter(x => x.key === workNameKey(name));
+      const pricedCandidates = p.ok ? exactCandidates.filter(x => Math.abs(x.group.maxPrice - p.value) <= tolerance + EPS) : [];
 
       if (isCommercialProposalCode(code)) {
         const keyNameUnit = compactMatchText(name) + '|' + unit;
@@ -100,6 +113,9 @@ export function compareAct(contractRows, actRows, tolerance) {
         }
         if (g) { contract = g; matchedByName = true; }
         else { status = 'ПОЗИЦИЯ КП НЕ НАЙДЕНА'; note = 'Позиция КП не найдена по наименованию и единице измерения. Номер КП при проверке не учитывается.'; sum.codeNotFound++; }
+      } else if (exactCandidates.length === 1 || pricedCandidates.length === 1) {
+        contract = (exactCandidates.length === 1 ? exactCandidates[0] : pricedCandidates[0]).group;
+        matchedUniqueName = true;
       } else if (dictExactName.has(keyExact)) {
         contract = dictExactName.get(keyExact);
       } else if (dictCodeUnit.has(keyCodeUnit)) {
@@ -112,8 +128,9 @@ export function compareAct(contractRows, actRows, tolerance) {
       }
 
       if (contract) {
-        const duplicates = matchedByName ? contract.count : (dictCodeUnit.get(keyCodeUnit) || contract).count;
+        const duplicates = contract.count;
         if (matchedByName) note = 'Позиция КП сопоставлена по наименованию и единице измерения; номер КП не учитывается; ';
+        else if (matchedUniqueName && (dictCodeUnit.get(keyCodeUnit)?.count || 0) > 1) note = 'Строка договора выбрана по шифру, наименованию и единице измерения; ';
         else if (nameMismatch) note = 'Наименование отличается от договорного; ';
 
         if (!p.ok) {
@@ -140,6 +157,7 @@ export function compareAct(contractRows, actRows, tolerance) {
       report.push({
         actRow: a.row, code: a.code, name: a.name, unit: a.unit, actPrice: a.price, status, note,
         contractRow: contract ? contract.row : null,
+        contractPrintedRow: contract ? contract.displayRow : null,
         contractPrice: contract ? contract.maxPrice : null,
         diff: contract && p.ok ? contract.maxPrice - p.value : null,
         duplicates: contract ? contract.duplicates : null,

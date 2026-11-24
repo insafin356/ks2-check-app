@@ -68,10 +68,10 @@ function applyNumberFormat(ws, cols, rangeEnd) {
 }
 
 export function exportActReport(report, summary, tolerance) {
-  const headers = ['Строка акта', 'Шифр / обоснование', 'Наименование в акте', 'Ед. изм. в акте', 'Цена в акте', 'Статус', 'Комментарий', 'Строка договора', 'Цена по договору', 'Разница: договор - акт', 'Дублей сочетания шифр+ед.изм.'];
+  const headers = ['Строка акта', 'Шифр / обоснование', 'Наименование в акте', 'Ед. изм. в акте', 'Цена в акте', 'Статус', 'Комментарий', 'Позиция договора', 'Цена по договору', 'Разница: договор - акт', 'Подходящих строк договора'];
   const data = report.map(r => [
     r.actRow, r.code, r.name, r.unit, r.actPrice, r.status, r.note,
-    r.contractRow, r.contractPrice, r.diff, r.duplicates,
+    r.contractPrintedRow ?? r.contractRow, r.contractPrice, r.diff, r.duplicates,
   ]);
   const aoa = [headers, ...data];
   const ws = XLSX.utils.aoa_to_sheet(aoa);
@@ -88,7 +88,7 @@ export function exportActReport(report, summary, tolerance) {
     ['Допуск округления', tolerance],
     ['ОК', summary.ok],
     ['Цена выше договорной', summary.priceTooHigh],
-    ['Шифр не найден', summary.codeNotFound],
+    ['Не найдено в договоре', summary.codeNotFound],
     ['Не совпадает ед. изм.', summary.unitMismatch],
     ['Цена не распознана', summary.priceUnreadable],
     ['Неоднозначный дубль', summary.ambiguous],

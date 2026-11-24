@@ -1,14 +1,14 @@
 ﻿/* Точка входа: вкладки, загрузка файлов, проверки, страницы позиций, отчёт */
-import { parseContractPdf, CONTRACT_PARSER_VERSION } from './pdf-contract.js?v=pdf-rows-5';
+import { parseContractPdf, CONTRACT_PARSER_VERSION } from './pdf-contract.js?v=duplicate-match-1';
 import { parseActWorkbook, ACT_PARSER_VERSION } from './xlsx-act.js?v=act-rows-2';
 import { parseMarketWorkbook } from './xlsx-market.js';
-import { compareAct } from './compare-act.js?v=unit-compare-1';
+import { compareAct } from './compare-act.js?v=duplicate-match-1';
 import { compareMarket } from './compare-market.js';
 import { exportActReport, exportMarketReport } from './report-export.js';
 import { kvSet, kvGet, historyAdd } from './store.js';
 
 const $ = id => document.getElementById(id);
-const ACT_COMPARISON_VERSION = 2;
+const ACT_COMPARISON_VERSION = 3;
 const SLICE = 200;
 
 let state = {
@@ -218,7 +218,7 @@ $('btn-check-market').addEventListener('click', () => runCheck('market'));
 /* ── Вкладка «Отчет» ────────────────────────────────────────── */
 
 const CHIP_KEYS_ACT = [
-  ['ОК', 'ok'], ['Цена выше договорной', 'priceTooHigh'], ['Шифр не найден', 'codeNotFound'],
+  ['ОК', 'ok'], ['Цена выше договорной', 'priceTooHigh'], ['Не найдено в договоре', 'codeNotFound'],
   ['Не совпадает ед. изм.', 'unitMismatch'], ['Цена не распознана', 'priceUnreadable'],
   ['Неоднозначный дубль', 'ambiguous'], ['Отсутствует шифр', 'missingCode'],
   ['Отсутствует ед. изм.', 'missingUnit'], ['Отсутствует наименование', 'missingName'], ['Всего ошибок', 'totalErrors'],
@@ -241,11 +241,13 @@ function renderReport() {
     chips.map(([label, key]) => `<span class="chip ${key === 'ok' ? 'ok' : key === 'totalErrors' ? 'err' : ''}">${label}: ${summary[key] ?? 0}</span>`).join('');
 
   const filter = $('status-filter').value;
-  const visible = report.filter(r => !filter || r.status === filter);
+  const visible = report.filter(r => !filter || (filter === 'not-found'
+    ? r.status === 'ШИФР НЕ НАЙДЕН' || r.status === 'ПОЗИЦИЯ КП НЕ НАЙДЕНА'
+    : r.status === filter));
   const cols = kind === 'act'
     ? [['Строка акта', r => r.actRow], ['Шифр', r => r.code], ['Наименование в акте', r => r.name], ['Ед. изм.', r => r.unit],
        ['Цена в акте', r => fmtNum(r.actPrice), 'num'], ['Статус', r => r.status], ['Комментарий', r => r.note],
-       ['Строка договора', r => r.contractRow], ['Цена по договору', r => fmtNum(r.contractPrice), 'num'],
+       ['Позиция договора', r => r.contractPrintedRow ?? r.contractRow], ['Цена по договору', r => fmtNum(r.contractPrice), 'num'],
        ['Разница', r => fmtNum(r.diff), 'num'], ['Дублей', r => r.duplicates]]
     : [['Строка Мастер-каталога', r => r.marketRow], ['Шифр', r => r.code], ['Наименование', r => r.name],
        ['Цена', r => fmtNum(r.marketPrice), 'num'], ['Статус', r => r.status], ['Комментарий', r => r.note],
@@ -309,7 +311,7 @@ function renderContractPage() {
     rows.map(r => {
       const a = actMap.get(r.row), mk = mktMap.get(r.row);
       const st = a ? a.status : (mk ? mk.status : '');
-      return `<tr class="${rowCls(st)}"><td class="code-cell">${r.row}</td><td class="code-cell">${esc(r.code)}</td><td>${esc(r.name)}</td>` +
+      return `<tr class="${rowCls(st)}"><td class="code-cell">${r.printedRow ?? r.row}</td><td class="code-cell">${esc(r.code)}</td><td>${esc(r.name)}</td>` +
         `<td class="code-cell">${esc(r.unit)}</td><td class="num">${fmtNum(r.price)}</td>` +
         `<td class="status-cell">${badgeHtml(a ? a.status : '')}</td><td class="status-cell">${badgeHtml(mk ? mk.status : '')}</td></tr>`;
     }).join('') + '</tbody>';

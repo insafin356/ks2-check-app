@@ -3,14 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Проверка КС-2 и Мастер-каталог по договору</title>
-<link rel="manifest" href="manifest.json">
+<title>КС-2 - INSAFIN</title><link rel="icon" sizes="any" href="./favicon.ico?v=2">
+
 <link rel="stylesheet" href="css/app.css">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" type="image/png" href="./icons/icon-192.png">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
 </head>
 <body>
 <header class="app-header">
   <div class="hdr-row">
-    <div class="logo" aria-hidden="true"></div>
+    <img src="./icons/icon-192.png" width="44" height="44" alt="" style="border-radius:10px;flex:none;vertical-align:middle">
     <div class="hdr-title">
       <h1>Сверка единичных расценок</h1>
     </div>
@@ -99,7 +102,8 @@
         <option value="">Все статусы</option>
         <option value="ОК">ОК</option>
         <option value="ЦЕНА ВЫШЕ ДОГОВОРНОЙ">ЦЕНА ВЫШЕ ДОГОВОРНОЙ</option>
-        <option value="ШИФР НЕ НАЙДЕН">ШИФР НЕ НАЙДЕН</option>
+        <option value="not-found">НЕ НАЙДЕНО В ДОГОВОРЕ (ВСЕ)</option>
+        <option value="ШИФР НЕ НАЙДЕН">ШИФР НЕ НАЙДЕН (РАСЦЕНКИ)</option>
         <option value="НЕ СОВПАДАЕТ ЕД. ИЗМ.">НЕ СОВПАДАЕТ ЕД. ИЗМ.</option>
         <option value="ТРЕБУЕТ ПРОВЕРКИ ДУБЛЯ">ТРЕБУЕТ ПРОВЕРКИ ДУБЛЯ</option>
         <option value="НЕ УДАЛОСЬ ОПРЕДЕЛИТЬ ЦЕНУ">НЕ УДАЛОСЬ ОПРЕДЕЛИТЬ ЦЕНУ</option>
@@ -123,7 +127,7 @@
 </main>
 
 <script src="vendor/xlsx-js-style.js"></script>
-<script type="module" src="js/app.js?v=unit-compare-2"></script>
+<script type="module" src="js/app.js?v=duplicate-match-1"></script>
 <script>
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
     .then(reg => {
