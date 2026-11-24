@@ -8,6 +8,12 @@ export function normalizeText(v) {
   return s.toLowerCase();
 }
 
+// Пробелы в единицах измерения не меняют их смысл: PDF может разорвать
+// «металлоконструкций» на две строки посреди слова.
+export function normalizeUnit(v) {
+  return normalizeText(v).replace(/\s+/g, '');
+}
+
 // CleanVisibleText (Module1:4079)
 export function cleanVisibleText(v) {
   let s = v == null ? '' : String(v);

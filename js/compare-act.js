@@ -1,5 +1,5 @@
 /* Сверка КС-2 (Акт) с договором — паритет INSAFIN_Проверить_Акт_по_Договору (Module1:457) */
-import { normalizeText, cleanVisibleText, normalizeComparisonCode, compactMatchText, tryParseNumber, isCommercialProposalCode, priceKey } from './norm.js';
+import { normalizeUnit, cleanVisibleText, normalizeComparisonCode, compactMatchText, tryParseNumber, isCommercialProposalCode, priceKey } from './norm.js?v=unit-compare-1';
 
 const EPS = 1e-7;
 
@@ -35,7 +35,7 @@ export function compareAct(contractRows, actRows, tolerance) {
   for (const c of contractRows) {
     const code = normalizeComparisonCode(c.code);
     const name = cleanVisibleText(c.name);
-    const unit = normalizeText(c.unit);
+    const unit = normalizeUnit(c.unit);
     const p = tryParseNumber(c.price);
     if (code && unit && p.ok) {
       addContractGroup(dictCodeUnit, code + '|' + unit, c.row, p.value, name);
@@ -52,7 +52,7 @@ export function compareAct(contractRows, actRows, tolerance) {
   for (const a of actRows) {
     const code = normalizeComparisonCode(a.code);
     const name = cleanVisibleText(a.name);
-    const unit = normalizeText(a.unit);
+    const unit = normalizeUnit(a.unit);
     const p = tryParseNumber(a.price);
 
     let status = '', note = '', contract = null, matchedByName = false, nameMismatch = false;
