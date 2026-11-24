@@ -2,7 +2,7 @@
 import { parseContractPdf, CONTRACT_PARSER_VERSION } from './pdf-contract.js?v=wide-contract-1';
 import { parseActWorkbook, ACT_PARSER_VERSION } from './xlsx-act.js?v=act-rows-2';
 import { parseMarketWorkbook } from './xlsx-market.js';
-import { compareAct } from './compare-act.js?v=match-all-4';
+import { compareAct } from './compare-act.js?v=blank-unit-1';
 import { compareMarket } from './compare-market.js';
 import { exportActReport, exportMarketReport } from './report-export.js?v=duplicate-match-3';
 import { kvSet, kvGet, historyAdd } from './store.js';

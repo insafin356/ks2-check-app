@@ -16,4 +16,20 @@ const different = compareAct(
 assert.equal(different.report[0].status, 'НЕ СОВПАДАЕТ ЕД. ИЗМ.');
 assert.equal(different.summary.unitMismatch, 1);
 
+const noContractUnit = compareAct(
+  [{ row: 204, printedRow: 204, code: 'Цена, согласованная ООО "Газпром комплектация"', name: 'Труба ПЭ 63х5,8', unit: '', price: 309.93 }],
+  [{ row: 1, code: 'Цена, согласованная ООО "Газпром комплектация"', name: 'Труба ПЭ 63х5,8', unit: 'м', price: 309.93 }],
+  0.01,
+);
+assert.equal(noContractUnit.report[0].status, 'ОК');
+assert.equal(noContractUnit.report[0].contractPrintedRow, 204);
+assert.match(noContractUnit.report[0].note, /единица измерения не указана/);
+
+const differentName = compareAct(
+  [{ row: 204, code: 'Цена, согласованная ООО "Газпром комплектация"', name: 'Труба ПЭ 63х5,8', unit: '', price: 309.93 }],
+  [{ row: 1, code: 'Цена, согласованная ООО "Газпром комплектация"', name: 'Труба ПЭ 110х10', unit: 'м', price: 309.93 }],
+  0.01,
+);
+assert.equal(differentName.report[0].status, 'ШИФР НЕ НАЙДЕН');
+
 console.log('Unit comparison tests passed.');

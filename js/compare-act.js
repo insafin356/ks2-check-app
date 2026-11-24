@@ -65,13 +65,18 @@ function unitFactor(from, to) {
 }
 
 export function compareAct(contractRows, actRows, tolerance) {
-  const dictCodeUnit = new Map(), dictExactName = new Map(), dictNameUnit = new Map(), dictCode = new Map(), candidatesByCodeUnit = new Map(), materialCandidates = [];
+  const dictCodeUnit = new Map(), dictExactName = new Map(), dictNameUnit = new Map(), dictCode = new Map(), dictNoUnitExact = new Map(), candidatesByCodeUnit = new Map(), materialCandidates = [];
 
   for (const c of contractRows) {
     const code = normalizeComparisonCode(c.code);
     const name = cleanVisibleText(c.name);
     const unit = normalizeUnit(c.unit);
     const p = tryParseNumber(c.price);
+    if (code && !unit && name && p.ok) {
+      // Some source rows genuinely have an empty unit cell. Keep them available
+      // for an exact code-and-name match, without guessing a unit.
+      addContractGroup(dictNoUnitExact, code + '|' + compactMatchText(name), c.row, p.value, name, c.printedRow ?? c.row);
+    }
     if (code && unit && p.ok) {
       const keyCodeUnit = code + '|' + unit;
       if (!candidatesByCodeUnit.has(keyCodeUnit)) candidatesByCodeUnit.set(keyCodeUnit, []);
@@ -157,6 +162,9 @@ export function compareAct(contractRows, actRows, tolerance) {
       } else if (dictCodeUnit.has(keyCodeUnit)) {
         contract = dictCodeUnit.get(keyCodeUnit);
         nameMismatch = true;
+      } else if (dictNoUnitExact.has(code + '|' + compactMatchText(name))) {
+        contract = dictNoUnitExact.get(code + '|' + compactMatchText(name));
+        note = 'В договоре единица измерения не указана; строка сопоставлена по шифру и наименованию; ';
       } else if (dictCode.has(code)) {
         status = 'НЕ СОВПАДАЕТ ЕД. ИЗМ.'; note = 'Шифр найден в договоре, но единица измерения не совпала.'; sum.unitMismatch++;
       } else {
