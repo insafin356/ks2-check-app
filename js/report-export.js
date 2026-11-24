@@ -76,7 +76,21 @@ function applyNumberFormat(ws, cols, rangeEnd) {
   }
 }
 
-export function exportActReport(report, summary, tolerance) {
+export function actReportFileName(act) {
+  const uploadedName = String(act?.fileName ?? '').replace(/\.(?:xlsx|xlsm|xls)$/i, '').trim();
+  const match = uploadedName.match(/(?:^|[\s._-])КС\s*[-–]?\s*2(?:\s|$)(.*)$/i);
+  let objectName = match?.[1]?.trim().replace(/^\((.*)\)$/s, '$1').trim() || '';
+  if (!objectName) {
+    const title = String(act?.meta?.objectName ?? '').trim();
+    objectName = title.match(/(?:по\s+адресу|адрес)\s*:\s*(.+)$/i)?.[1] || title;
+  }
+  objectName = objectName.replace(/[\u0000-\u001f<>:"/\\|?*]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (objectName.length > 100) objectName = objectName.slice(0, 100).replace(/[\s,;–-]+$/g, '');
+  objectName = objectName.replace(/[.\s]+$/g, '');
+  return objectName ? `КС-2 — ${objectName} — проверка.xlsx` : 'КС-2 — проверка.xlsx';
+}
+
+export function exportActReport(report, summary, tolerance, act) {
   const headers = ['Строка акта', 'Шифр / обоснование', 'Наименование в акте', 'Ед. изм. в акте', 'Цена в акте', 'Статус', 'Комментарий', 'Позиция договора', 'Цена по договору', 'Разница: договор - акт', 'Подходящих строк договора'];
   const data = report.map(r => [
     r.actRow, r.code, r.name, r.unit, r.actPrice, r.status, r.note,
@@ -124,7 +138,7 @@ export function exportActReport(report, summary, tolerance) {
 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Отчет');
-  XLSX.writeFile(wb, 'отчет_КС2_проверка.xlsx');
+  XLSX.writeFile(wb, actReportFileName(act));
 }
 
 export function exportMarketReport(report, summary, tolerance) {

@@ -19,6 +19,18 @@ assert.equal(r.rows[0].srcRow,4);
 assert.equal(r.rows[0].code,'ГЭСН01-01-009-14');
 assert.equal(r.rows[1].position,2);
 assert.equal(r.rows[1].srcRow,6);
+r=parse([
+ ['Объект',null,'Ответвление газопровода. Адрес: РТ, п. Опушка'],
+ header,
+ [1,'ГЭСН01-01-009-14','Работа','1000 м3',75870.84],
+]);
+assert.equal(r.meta.objectName,'Ответвление газопровода. Адрес: РТ, п. Опушка');
+r=parse([
+ ['Объект - Ответвление газопровода по адресу: РТ, г. Казань'],
+ header,
+ [1,'ГЭСН01-01-009-14','Работа','1000 м3',75870.84],
+]);
+assert.equal(r.meta.objectName,'Ответвление газопровода по адресу: РТ, г. Казань');
 if(process.argv[2]){
  const data=fs.readFileSync(process.argv[2]),book=X.read(data),actual=parseActWorkbook(data),ws=book.Sheets[actual.meta.sheet];
  const expected=[];for(let i=30;i<=840;i++){if(Number.isInteger(ws['A'+i]?.v)){expected.push({position:ws['A'+i].v,srcRow:i,code:ws['C'+i]?.v?.split(/\r?\n/)[0],name:String(ws['D'+i]?.v??'').replace(/\r?\n/g,' ').replace(/\s+/g,' ').trim(),unit:ws['E'+i]?.v,price:ws['H'+i]?.v});}}

@@ -138,6 +138,27 @@ function tryFindActLayout(ws) {
 
 function encode(r, c) { return XLSX.utils.encode_cell({ r, c }); }
 
+// The act title is useful when the uploaded file has a generic name (for
+// example, "18. КС-2.xlsx"). Read it from the selected act sheet only.
+function findObjectName(ws, headerRow) {
+  const rowLimit = Math.min(headerRow, 35);
+  const colLimit = Math.min(lastUsedCol(ws), 18);
+  for (let r = 0; r <= rowLimit; r++) {
+    for (let c = 0; c <= colLimit; c++) {
+      const text = cleanVisibleText(ws[encode(r, c)]?.v);
+      const combined = text.match(/^объект\s*[-–:]\s*(.+)$/i);
+      if (combined) return combined[1].trim();
+      if (/^объект\s*:?$/i.test(text)) {
+        for (let next = c + 1; next <= colLimit; next++) {
+          const value = cleanVisibleText(ws[encode(r, next)]?.v);
+          if (value && !/^\(наименование[,\s]/i.test(value)) return value;
+        }
+      }
+    }
+  }
+  return '';
+}
+
 // Resource breakdown rows have no number in the act's "по порядку" column.
 // Detect that column by its header, not by a hardcoded A-column assumption.
 function findPositionColumn(ws, headerRow, codeCol) {
@@ -213,5 +234,5 @@ export function parseActWorkbook(data) {
       outRow++; loaded++;
     } else skipped++;
   }
-  return { rows, meta: { parserVersion: ACT_PARSER_VERSION, sheet: bestSheet, cols: { code: colCode + 1, name: colName + 1, unit: colUnit + 1, price: colPrice + 1, position: positionCol == null ? null : positionCol + 1 }, headerRow: startRow + 1, loaded, skipped } };
+  return { rows, meta: { parserVersion: ACT_PARSER_VERSION, sheet: bestSheet, objectName: findObjectName(ws, best.headerRow), cols: { code: colCode + 1, name: colName + 1, unit: colUnit + 1, price: colPrice + 1, position: positionCol == null ? null : positionCol + 1 }, headerRow: startRow + 1, loaded, skipped } };
 }

@@ -1,10 +1,10 @@
 ﻿/* Точка входа: вкладки, загрузка файлов, проверки, страницы позиций, отчёт */
 import { parseContractPdf, CONTRACT_PARSER_VERSION } from './pdf-contract.js?v=wide-contract-1';
-import { parseActWorkbook, ACT_PARSER_VERSION } from './xlsx-act.js?v=act-rows-3';
+import { parseActWorkbook, ACT_PARSER_VERSION } from './xlsx-act.js?v=export-name-1';
 import { parseMarketWorkbook } from './xlsx-market.js';
 import { compareAct } from './compare-act.js?v=blank-unit-1';
 import { compareMarket } from './compare-market.js';
-import { exportActReport, exportMarketReport } from './report-export.js?v=duplicate-match-3';
+import { exportActReport, exportMarketReport } from './report-export.js?v=export-name-1';
 import { kvSet, kvGet, historyAdd } from './store.js';
 
 const $ = id => document.getElementById(id);
@@ -403,7 +403,7 @@ function esc(v) { return String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&
 
 $('btn-export').addEventListener('click', () => {
   if (!state.report) { alert('Сначала выполните проверку.'); return; }
-  if (state.report.kind === 'act') exportActReport(state.report.report, state.report.summary, state.report.tolerance);
+  if (state.report.kind === 'act') exportActReport(state.report.report, state.report.summary, state.report.tolerance, state.act);
   else exportMarketReport(state.report.report, state.report.summary, state.report.tolerance);
 });
 
