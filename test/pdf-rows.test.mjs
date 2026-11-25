@@ -8,6 +8,11 @@ const item=(str,x,y)=>({str,transform:[8,0,0,8,x,y],width:str.length*4,height:8}
 const items=[item('ГЭСН27-12-004-01',80,80),item('Начало названия',155,88),item('продолжение названия',155,76),item('км',400,80),item('10,00',460,80),item('12,00',540,80),item('9,00',620,80),item('Раздел 4',155,60),item('0,00',620,60)];
 assert.deepEqual(extractRowsFromBands(items,[100,70,50]),[{code:'ГЭСН27-12-004-01',name:'Начало названия продолжение названия',unit:'км',price:9,printedRow:null}]);
 assert.equal(extractRowsFromBands([item('31',60,80),...items],[100,70,50])[0].printedRow,31);
+// Contracts may print a bare КП in the code column; the act uses КП-01 etc.
+const kpItems=[item('160',60,88),item('КП',80,88),item('Цокольный ввод',155,88),item('шт',400,88),item('13 305,07',610,88)];
+assert.deepEqual(extractRowsFromBands(kpItems,[100,70],{left:570,right:640,column:7}),[
+ {code:'КП',name:'Цокольный ввод',unit:'шт',price:13305.07,printedRow:160}
+]);
 // Column 5 is empty; the third populated number is VAT, while column 7 is
 // still the contractual offer price without VAT.
 const missingBasePrice=[item('36',60,80),item('ГЭСН01-01-009-14',80,80),item('Земляные работы',155,80),item('1000 м3',400,80),item('93 027,56',520,80),item('76 175,85',590,80),item('16 758,69',660,80),item('92 934,53',730,80)];
@@ -17,12 +22,13 @@ if(process.argv[2]){
  const result=await parseContractPdf(new Uint8Array(fs.readFileSync(process.argv[2])));
  const expected=[918798.88,61068.23,2976.06,3492.34,3492.34,75870.84,99673.45,123476.07,67753.59,109109.67,170996.63,34166.8,1135.74,7950.09,3514.78,7797.87,17426.15];
  for(let i=0;i<expected.length;i++)assert.equal(result.rows.find(r=>r.row===31+i).price,expected[i],`position ${31+i}`);
- assert.equal(result.rows.length,1012);
+ assert.equal(result.rows.length,1011);
+ assert.ok(result.rows.every(r => r.code !== 'Ограничительно-защитное'));
  assert.match(result.rows[30].name,/толщиной слоя 15 см/);
  assert.doesNotMatch(result.rows[30].name,/На каждые/);
  assert.match(result.rows[35].name,/группа грунтов: 2$/);
  assert.doesNotMatch(result.rows[35].name,/Раздел/);
- assert.equal(result.meta.parserVersion,6);
+ assert.equal(result.meta.parserVersion,7);
  assert.equal(result.rows.find(r=>r.row===530).printedRow,529);
  console.log('Real PDF: positions 31–47, names, prices, count and parser version passed.');
 }

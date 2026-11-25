@@ -1,7 +1,7 @@
 /* Парсинг договора из PDF через pdf.js — паритет BuildPdfPowerQueryFormula (Module1:3613) */
 import { normalizeText, looksLikeCode, tryParseNumber, firstToken, cleanVisibleText } from './norm.js';
 
-export const CONTRACT_PARSER_VERSION = 6;
+export const CONTRACT_PARSER_VERSION = 7;
 
 const UNIT_RE = /^(?:\d+\s*)?(?:м3|м2|м|км|т|кг|шт|стык|соединение|узел|участок|компл|ед|усл|смена|чел-ч|маш-см|ч|м\.кб|м\.кв|т\.км)$/i;
 
@@ -204,6 +204,9 @@ export function extractRowsFromBands(items,bounds,priceColumn){
     const name=parts.map(p=>p.name).filter(Boolean).join(' ');
     const unit=parts.map(p=>p.unit).filter(Boolean).join(' ');
     const prices=parts.filter(p=>p.price!=null);
+    // A section label can look like a code because it contains a hyphen.
+    // Without a printed position, name and unit it is not a rate row.
+    if(!printedItem&&!name&&!unit)continue;
     rows.push({code,name,unit,price:prices.length?prices[0].price:null,printedRow});
   }
   return rows;

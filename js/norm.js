@@ -44,6 +44,7 @@ export function compactHeaderKey(txt) {
 export function looksLikeCode(s) {
   const u = String(s || '').trim().toUpperCase();
   if (!u) return false;
+  if (u === 'КП' || u === 'KP') return true;
   if (u.startsWith('ГЭСН') || u.startsWith('ФЕР') || u.startsWith('ТЕР')) return true;
   if (u.includes('-') || u.includes('.')) return true;
   return false;

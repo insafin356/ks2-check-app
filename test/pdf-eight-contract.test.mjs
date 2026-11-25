@@ -40,7 +40,7 @@ if (process.argv[2] && process.argv[3]) {
       unit: String(ws[`C${row}`]?.v ?? ''), price,
     });
   }
-  assert.equal(contract.meta.parserVersion, 6);
+  assert.equal(contract.meta.parserVersion, 7);
   assert.equal(contract.rows.length, 838);
   assert.equal(expected.length, 838);
   contract.rows.forEach((actual, index) => {
