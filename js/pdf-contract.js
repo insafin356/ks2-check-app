@@ -1,7 +1,7 @@
 /* Парсинг договора из PDF через pdf.js — паритет BuildPdfPowerQueryFormula (Module1:3613) */
 import { normalizeText, looksLikeCode, tryParseNumber, firstToken, cleanVisibleText } from './norm.js';
 
-export const CONTRACT_PARSER_VERSION = 5;
+export const CONTRACT_PARSER_VERSION = 6;
 
 const UNIT_RE = /^(?:\d+\s*)?(?:м3|м2|м|км|т|кг|шт|стык|соединение|узел|участок|компл|ед|усл|смена|чел-ч|маш-см|ч|м\.кб|м\.кв|т\.км)$/i;
 
@@ -104,10 +104,13 @@ function partsFromCells(cells, priceColumn) {
   const clusters = cells.map(c => ({ x: c.x, text: c.text.trim() })).filter(c => c.text);
   if (!clusters.length) return null;
   const codeClusters = clusters.filter(c => c.x < 150);
-  const nameClusters = clusters.filter(c => c.x >= 150 && c.x < 385);
-  const unitClusters = clusters.filter(c => c.x >= 385 && c.x < 445);
+  const nameClusters = clusters.filter(c => c.x >= 150 && c.x < 375);
+  const unitClusters = clusters.filter(c => c.x >= 375 && c.x < 445);
   const nums = clusters.filter(c => c.x >= 445).sort((a, b) => a.x - b.x);
-  const codeCell = codeClusters.find(c => looksLikeCode(firstToken(c.text)));
+  // PDF text sometimes joins the printed row number and the code into one
+  // visual cell ("38 ГЭСН01-..."). The number is not part of the code.
+  const codeToken = text => firstToken(text.replace(/^\d{1,4}\s+(?=\S)/, ''));
+  const codeCell = codeClusters.find(c => looksLikeCode(codeToken(c.text)));
   // Prefer the printed column 7 (offer price without VAT). Counting the
   // non-empty numbers shifts into the VAT column when columns 5 or 6 are blank.
   const priceCell = priceColumn
@@ -115,7 +118,7 @@ function partsFromCells(cells, priceColumn) {
     : nums[2];
   const price = priceCell ? tryParseNumber(priceCell.text) : { ok: false, value: null };
   return {
-    code: codeCell ? firstToken(codeCell.text) : '',
+    code: codeCell ? codeToken(codeCell.text) : '',
     name: nameClusters.map(c => c.text).join(' ').trim(),
     unit: unitClusters.length ? unitClusters[0].text : '',
     price: price.ok ? price.value : null,
@@ -176,29 +179,48 @@ export function extractRowsFromBands(items,bounds,priceColumn){
   const rows=[];
   for(let i=0;i<bounds.length-1;i++){
     const inside=items.filter(it=>it.transform[5]<bounds[i]&&it.transform[5]>bounds[i+1]);
+    if(priceColumn?.column===6){
+      // In eight-column appendices the text of adjacent cells can overlap on
+      // one PDF baseline. Item start positions preserve the actual columns.
+      const printedItem=inside.find(it=>it.transform[4]>=45&&it.transform[4]<68&&/^\d{1,4}$/.test(it.str.trim()));
+      if(!printedItem)continue;
+      const column=(left,right)=>inside.filter(it=>it.transform[4]>=left&&it.transform[4]<right&&it.str.trim())
+        .sort((a,b)=>b.transform[5]-a.transform[5]||a.transform[4]-b.transform[4]);
+      const codeItem=column(68,150)[0];
+      const priceItem=column(priceColumn.left,priceColumn.right).find(it=>tryParseNumber(it.str).ok);
+      if(!codeItem||!priceItem)continue;
+      rows.push({code:codeItem.str.trim(),name:column(150,375).map(it=>it.str.trim()).join(' '),
+        unit:column(375,445).map(it=>it.str.trim()).join(' '),price:tryParseNumber(priceItem.str).value,
+        printedRow:Number(printedItem.str.trim())});
+      continue;
+    }
     const lines=linesFromItems(inside),parts=lines.map(l=>partsFromCells(l.cells,priceColumn)).filter(Boolean);
-    const code=parts.find(p=>p.code);
+    const printedItem=inside.find(it=>it.transform[4]>=45&&it.transform[4]<68&&/^\d{1,4}$/.test(it.str.trim()));
+    const code=parts.find(p=>p.code)?.code;
     if(!code)continue;
-    const codeItem=inside.find(it=>it.str.trim()===code.code);
-    const printedRow=codeItem ? (inside.filter(it=>it.transform[4]>45&&it.transform[4]<75&&/^\d{1,4}$/.test(it.str.trim())&&Math.abs(it.transform[5]-codeItem.transform[5])<2)
-      .map(it=>Number(it.str.trim()))[0] ?? null) : null;
+    const codeItem=inside.find(it=>it.str.trim()===code);
+    const printedRow=printedItem&&codeItem&&Math.abs(printedItem.transform[5]-codeItem.transform[5])<2
+      ? Number(printedItem.str.trim()) : null;
     const name=parts.map(p=>p.name).filter(Boolean).join(' ');
     const unit=parts.map(p=>p.unit).filter(Boolean).join(' ');
     const prices=parts.filter(p=>p.price!=null);
-    rows.push({code:code.code,name,unit,price:prices.length?prices[0].price:null,printedRow});
+    rows.push({code,name,unit,price:prices.length?prices[0].price:null,printedRow});
   }
   return rows;
 }
 
-// Use the numbered table header to locate column 7, even when preceding
-// numeric cells are empty in the body of the table.
-function offerPriceColumn(items) {
-  const numbered = items.filter(it => /^[5-8]$/.test(it.str.trim()) && it.transform[4] > 400);
-  for (const seven of numbered.filter(it => it.str.trim() === '7')) {
-    const y = seven.transform[5], x = seven.transform[4];
-    const six = numbered.find(it => it.str.trim() === '6' && it.transform[4] < x && Math.abs(it.transform[5] - y) < 2);
-    const eight = numbered.find(it => it.str.trim() === '8' && it.transform[4] > x && Math.abs(it.transform[5] - y) < 2);
-    if (six && eight) return { left: (six.transform[4] + x) / 2, right: (x + eight.transform[4]) / 2 };
+// Use the numbered table header to locate the offer price without VAT. In
+// nine-column tables it is column 7; in eight-column tables it is column 6.
+export function offerPriceColumn(items) {
+  const numbered = items.filter(it => /^[5-9]$/.test(it.str.trim()) && it.transform[4] > 400);
+  for (const candidate of numbered.filter(it => it.str.trim() === '7' || it.str.trim() === '6')) {
+    const y = candidate.transform[5], x = candidate.transform[4];
+    const sameLine = numbered.filter(it => Math.abs(it.transform[5] - y) < 2);
+    const target = sameLine.some(it => it.str.trim() === '9') ? '7' : '6';
+    if (candidate.str.trim() !== target) continue;
+    const prev = sameLine.filter(it => it.transform[4] < x).sort((a,b) => b.transform[4] - a.transform[4])[0];
+    const next = sameLine.filter(it => it.transform[4] > x).sort((a,b) => a.transform[4] - b.transform[4])[0];
+    if (prev && next) return { left: (prev.transform[4] + x) / 2, right: (x + next.transform[4]) / 2, column: Number(target) };
   }
   return null;
 }

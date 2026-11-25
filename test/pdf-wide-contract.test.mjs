@@ -18,7 +18,7 @@ assert.deepEqual(extractRowsFromWideBands(sample, [100, 70]), [{
 const fixture = process.env.KS2_WIDE_CONTRACT_PDF;
 if (fixture) {
   const result = await parseContractPdf(new Uint8Array(fs.readFileSync(fixture)));
-  assert.equal(result.meta.parserVersion, 4);
+  assert.equal(result.meta.parserVersion, 6);
   assert.equal(result.rows.length, 782);
   assert.equal(new Set(result.rows.map(r => r.printedRow)).size, 779);
   assert.equal(result.rows[0].price, 1117.15);
