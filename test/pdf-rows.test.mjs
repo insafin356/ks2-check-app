@@ -8,6 +8,10 @@ const item=(str,x,y)=>({str,transform:[8,0,0,8,x,y],width:str.length*4,height:8}
 const items=[item('ГЭСН27-12-004-01',80,80),item('Начало названия',155,88),item('продолжение названия',155,76),item('км',400,80),item('10,00',460,80),item('12,00',540,80),item('9,00',620,80),item('Раздел 4',155,60),item('0,00',620,60)];
 assert.deepEqual(extractRowsFromBands(items,[100,70,50]),[{code:'ГЭСН27-12-004-01',name:'Начало названия продолжение названия',unit:'км',price:9,printedRow:null}]);
 assert.equal(extractRowsFromBands([item('31',60,80),...items],[100,70,50])[0].printedRow,31);
+// Column 5 is empty; the third populated number is VAT, while column 7 is
+// still the contractual offer price without VAT.
+const missingBasePrice=[item('36',60,80),item('ГЭСН01-01-009-14',80,80),item('Земляные работы',155,80),item('1000 м3',400,80),item('93 027,56',520,80),item('76 175,85',590,80),item('16 758,69',660,80),item('92 934,53',730,80)];
+assert.equal(extractRowsFromBands(missingBasePrice,[100,70],{left:570,right:640})[0].price,76175.85);
 // Optional local fixture; never upload contracts to the repository.
 if(process.argv[2]){
  const result=await parseContractPdf(new Uint8Array(fs.readFileSync(process.argv[2])));
@@ -18,7 +22,7 @@ if(process.argv[2]){
  assert.doesNotMatch(result.rows[30].name,/На каждые/);
  assert.match(result.rows[35].name,/группа грунтов: 2$/);
  assert.doesNotMatch(result.rows[35].name,/Раздел/);
- assert.equal(result.meta.parserVersion,4);
+ assert.equal(result.meta.parserVersion,5);
  assert.equal(result.rows.find(r=>r.row===530).printedRow,529);
  console.log('Real PDF: positions 31–47, names, prices, count and parser version passed.');
 }

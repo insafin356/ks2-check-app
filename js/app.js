@@ -1,14 +1,14 @@
 ﻿/* Точка входа: вкладки, загрузка файлов, проверки, страницы позиций, отчёт */
-import { parseContractPdf, CONTRACT_PARSER_VERSION } from './pdf-contract.js?v=wide-contract-1';
-import { parseActWorkbook, ACT_PARSER_VERSION } from './xlsx-act.js?v=export-name-1';
+import { parseContractPdf, CONTRACT_PARSER_VERSION } from './pdf-contract.js?v=offer-column-1';
+import { parseActWorkbook, ACT_PARSER_VERSION } from './xlsx-act.js?v=position-pp-1';
 import { parseMarketWorkbook } from './xlsx-market.js';
-import { compareAct } from './compare-act.js?v=blank-unit-1';
+import { compareAct } from './compare-act.js?v=duplicate-tolerance-1';
 import { compareMarket } from './compare-market.js';
 import { exportActReport, exportMarketReport } from './report-export.js?v=export-name-1';
 import { kvSet, kvGet, historyAdd } from './store.js';
 
 const $ = id => document.getElementById(id);
-const ACT_COMPARISON_VERSION = 4;
+const ACT_COMPARISON_VERSION = 5;
 const SLICE = 200;
 
 let state = {

@@ -192,7 +192,7 @@ export function compareAct(contractRows, actRows, tolerance) {
           status = 'НЕ УДАЛОСЬ ОПРЕДЕЛИТЬ ЦЕНУ'; note += 'Цена в акте отсутствует или не распознана как число.'; sum.priceUnreadable++;
         } else if (p.value > contract.maxPrice + tolerance + EPS) {
           status = 'ЦЕНА ВЫШЕ ДОГОВОРНОЙ'; note += 'Цена в акте превышает максимальную подходящую договорную цену.'; sum.priceTooHigh++;
-        } else if (contract.maxPrice - contract.minPrice > tolerance + EPS && p.value > contract.minPrice + tolerance + EPS && !priceListContains(contract.prices, p.value)) {
+        } else if (contract.maxPrice - contract.minPrice > tolerance + EPS && p.value > contract.minPrice + tolerance + EPS && !priceListContainsTolerance(contract.prices, p.value, tolerance)) {
           status = 'ТРЕБУЕТ ПРОВЕРКИ ДУБЛЯ';
           note += 'В договоре найдено несколько подходящих строк с разными ценами; цена акта не совпадает ни с одной из них.';
           sum.ambiguous++;

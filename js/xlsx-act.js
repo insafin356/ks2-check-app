@@ -6,7 +6,7 @@ import {
 import * as XLSX from '../vendor/xlsx.mjs';
 
 const HEADER_WINDOW = 10, MAX_SCAN_ROWS = 300, VALIDATION_ROWS = 150;
-export const ACT_PARSER_VERSION = 3;
+export const ACT_PARSER_VERSION = 4;
 const MIN = { code: 80, name: 80, unit: 80, price: 65 };
 
 // ScoreCodeHeader (Module1:3179)
@@ -165,7 +165,7 @@ function findPositionColumn(ws, headerRow, codeCol) {
   for (let c = 0; c < codeCol; c++) {
     const text = buildColumnHeaderText(ws, Math.max(0, headerRow - HEADER_WINDOW), headerRow + HEADER_WINDOW, c);
     const key = compactHeaderKey(text);
-    if (key.includes('попорядку') || /№\s*п\s*[/.]\s*п/i.test(text)) return c;
+    if (key.includes('попорядку') || /№\s*п[\s/.]*п/i.test(text)) return c;
   }
   return null;
 }

@@ -1,7 +1,7 @@
 /* Парсинг договора из PDF через pdf.js — паритет BuildPdfPowerQueryFormula (Module1:3613) */
 import { normalizeText, looksLikeCode, tryParseNumber, firstToken, cleanVisibleText } from './norm.js';
 
-export const CONTRACT_PARSER_VERSION = 4;
+export const CONTRACT_PARSER_VERSION = 5;
 
 const UNIT_RE = /^(?:\d+\s*)?(?:м3|м2|м|км|т|кг|шт|стык|соединение|узел|участок|компл|ед|усл|смена|чел-ч|маш-см|ч|м\.кб|м\.кв|т\.км)$/i;
 
@@ -100,7 +100,7 @@ function rowFromCells(cells, pageNumber, prevOpen) {
 }
 
 // Разбивка визуальной строки на части по X-колонкам
-function partsFromCells(cells) {
+function partsFromCells(cells, priceColumn) {
   const clusters = cells.map(c => ({ x: c.x, text: c.text.trim() })).filter(c => c.text);
   if (!clusters.length) return null;
   const codeClusters = clusters.filter(c => c.x < 150);
@@ -108,7 +108,11 @@ function partsFromCells(cells) {
   const unitClusters = clusters.filter(c => c.x >= 385 && c.x < 445);
   const nums = clusters.filter(c => c.x >= 445).sort((a, b) => a.x - b.x);
   const codeCell = codeClusters.find(c => looksLikeCode(firstToken(c.text)));
-  const priceCell = nums[2];
+  // Prefer the printed column 7 (offer price without VAT). Counting the
+  // non-empty numbers shifts into the VAT column when columns 5 or 6 are blank.
+  const priceCell = priceColumn
+    ? nums.find(c => c.x >= priceColumn.left && c.x < priceColumn.right)
+    : nums[2];
   const price = priceCell ? tryParseNumber(priceCell.text) : { ok: false, value: null };
   return {
     code: codeCell ? firstToken(codeCell.text) : '',
@@ -121,14 +125,14 @@ function partsFromCells(cells) {
 // Извлечение строк расценок со страницы. В PDF одна строка таблицы часто разбита
 // на две визуальные строки (данные выше, шифр ниже) — накапливаем части в буфере
 // и выдаём строку, когда есть шифр и цена/ед.изм.
-export function extractRowsFromLines(lines, pageNumber) {
+export function extractRowsFromLines(lines, pageNumber, priceColumn) {
   const rows = [];
   let buf = null;
   const flush = () => { if (buf && buf.code) rows.push(buf); buf = null; };
   for (const line of lines) {
     // строка-заголовок таблицы «1 2 3 4 5 6 7 8 9» — пропускаем
     if (line.cells.length && line.cells.every(c => /^[1-9]$/.test(c.text.trim()))) continue;
-    const parts = partsFromCells(line.cells);
+    const parts = partsFromCells(line.cells, priceColumn);
     if (!parts) continue;
     if (!buf) {
       buf = parts;
@@ -168,11 +172,11 @@ export function tableRowBoundaries(operatorList, OPS) {
   }
   return ys.sort((a,b)=>b-a).filter((v,i,a)=>!i||Math.abs(v-a[i-1])>2);
 }
-export function extractRowsFromBands(items,bounds){
+export function extractRowsFromBands(items,bounds,priceColumn){
   const rows=[];
   for(let i=0;i<bounds.length-1;i++){
     const inside=items.filter(it=>it.transform[5]<bounds[i]&&it.transform[5]>bounds[i+1]);
-    const lines=linesFromItems(inside),parts=lines.map(l=>partsFromCells(l.cells)).filter(Boolean);
+    const lines=linesFromItems(inside),parts=lines.map(l=>partsFromCells(l.cells,priceColumn)).filter(Boolean);
     const code=parts.find(p=>p.code);
     if(!code)continue;
     const codeItem=inside.find(it=>it.str.trim()===code.code);
@@ -184,6 +188,19 @@ export function extractRowsFromBands(items,bounds){
     rows.push({code:code.code,name,unit,price:prices.length?prices[0].price:null,printedRow});
   }
   return rows;
+}
+
+// Use the numbered table header to locate column 7, even when preceding
+// numeric cells are empty in the body of the table.
+function offerPriceColumn(items) {
+  const numbered = items.filter(it => /^[5-8]$/.test(it.str.trim()) && it.transform[4] > 400);
+  for (const seven of numbered.filter(it => it.str.trim() === '7')) {
+    const y = seven.transform[5], x = seven.transform[4];
+    const six = numbered.find(it => it.str.trim() === '6' && it.transform[4] < x && Math.abs(it.transform[5] - y) < 2);
+    const eight = numbered.find(it => it.str.trim() === '8' && it.transform[4] > x && Math.abs(it.transform[5] - y) < 2);
+    if (six && eight) return { left: (six.transform[4] + x) / 2, right: (x + eight.transform[4]) / 2 };
+  }
+  return null;
 }
 
 // Some contract appendices use a wider table: the description begins at x≈210,
@@ -239,6 +256,7 @@ export async function parseContractPdf(data, onProgress) {
   if (!cands.length) throw new Error('Не найдена таблица с заголовками расценок и строительными шифрами ГЭСН / ФЕР / ТЕР.');
   const startPage = Math.min(...cands.map(x => x.n));
   const wideTable = pages[startPage - 1].items.some(it => it.transform[4] > 500 && /ед\.\s*изм/i.test(it.str));
+  const priceColumn = wideTable ? null : offerPriceColumn(pages[startPage - 1].items);
 
   const startAppendix = appendixNumberFromHeading(pages[startPage - 1].text);
   const endCandidates = pages.map((pg, i) => ({ n: i + 1, app: appendixNumberFromHeading(pg.text) }))
@@ -258,8 +276,8 @@ export async function parseContractPdf(data, onProgress) {
     const boundaries = tableRowBoundaries(await page.getOperatorList(), pdfjs.OPS);
     const pageRows = boundaries.length >= 2
       ? (wideTable ? extractRowsFromWideBands(pages[p - 1].items, boundaries)
-        : extractRowsFromBands(pages[p - 1].items, boundaries))
-      : (wideTable ? [] : extractRowsFromLines(lines, p));
+        : extractRowsFromBands(pages[p - 1].items, boundaries, priceColumn))
+      : (wideTable ? [] : extractRowsFromLines(lines, p, priceColumn));
     for (const r of pageRows) {
       // Фильтр PQ: Обоснование не пустое и не "2"
       if (!r.code || r.code === '2') continue;

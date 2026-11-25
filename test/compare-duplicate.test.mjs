@@ -20,4 +20,11 @@ const uncertain = compareAct(contract, [{ ...act[0], name: 'Иная работ�
 assert.equal(uncertain.report[0].status, 'ТРЕБУЕТ ПРОВЕРКИ ДУБЛЯ');
 assert.equal(uncertain.summary.ambiguous, 1);
 
+const withinOneKopeck = compareAct([
+  { row: 1, code: 'ГЭСН01-02-061-02', name: 'Засыпка вручную', unit: '100 м3', price: 7546.91 },
+  { row: 2, code: 'ГЭСН01-02-061-02', name: 'Засыпка траншей вручную', unit: '100 м3', price: 34304.15 },
+], [{ row: 1, code: 'ГЭСН01-02-061-02', name: 'Засыпка вручную траншей', unit: '100 м3', price: 34304.16 }], 0.01);
+assert.equal(withinOneKopeck.report[0].status, 'ОК');
+assert.equal(withinOneKopeck.summary.ambiguous, 0);
+
 console.log('Duplicate matching regression tests passed.');
