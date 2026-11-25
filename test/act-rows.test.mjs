@@ -38,11 +38,19 @@ r=parse([
  [1,'ГЭСН01-01-009-14','Работа','1000 м3',75870.84],
 ]);
 assert.equal(r.meta.objectName,'Ответвление газопровода по адресу: РТ, г. Казань');
+r=parse([
+ header,
+ [1,'КП-6','Цокольный ввод','шт','14568,99\r\n17553,00/1,2/1,091'],
+ [2,'КП-17','Отвод седловой','шт','6092,2\r\n7340/1,2/1,091'],
+ [3,'КП-18','Цена не указана','шт','пояснение\r\n7340/1,2/1,091'],
+]);
+assert.equal(r.rows.length,3);
+assert.deepEqual(r.rows.map(x=>x.price),[14568.99,6092.2,null]);
 if(process.argv[2]){
  const data=fs.readFileSync(process.argv[2]),book=X.read(data),actual=parseActWorkbook(data),ws=book.Sheets[actual.meta.sheet];
  const expected=[];for(let i=30;i<=840;i++){if(Number.isInteger(ws['A'+i]?.v)){expected.push({position:ws['A'+i].v,srcRow:i,code:ws['C'+i]?.v?.split(/\r?\n/)[0],name:String(ws['D'+i]?.v??'').replace(/\r?\n/g,' ').replace(/\s+/g,' ').trim(),unit:ws['E'+i]?.v,price:ws['H'+i]?.v});}}
  assert.equal(actual.rows.length,189);assert.equal(expected.length,189);
  for(let i=0;i<189;i++){const a=actual.rows[i],e=expected[i];assert.equal(a.position,i+1);for(const k of ['srcRow','code','name','unit','price'])assert.equal(a[k],e[k],`position ${i+1} ${k}`);}
- assert.equal(actual.meta.parserVersion,4); console.log('All 189 original positions: order, source rows, codes, names, units and prices verified.');
+ assert.equal(actual.meta.parserVersion,5); console.log('All 189 original positions: order, source rows, codes, names, units and prices verified.');
 }
 console.log('Act import regression tests passed.');

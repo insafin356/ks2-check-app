@@ -6,7 +6,7 @@ import {
 import * as XLSX from '../vendor/xlsx.mjs';
 
 const HEADER_WINDOW = 10, MAX_SCAN_ROWS = 300, VALIDATION_ROWS = 150;
-export const ACT_PARSER_VERSION = 4;
+export const ACT_PARSER_VERSION = 5;
 const MIN = { code: 80, name: 80, unit: 80, price: 65 };
 
 // ScoreCodeHeader (Module1:3179)
@@ -81,6 +81,15 @@ function isActDataRow(code, nm, unit, priceOk) {
   return false;
 }
 
+// In some acts the price cell contains an explanatory calculation below the
+// actual price. Only the first visible line is the unit price.
+function tryParseActPrice(value) {
+  const whole = tryParseNumber(value);
+  if (whole.ok || typeof value !== 'string' || !/[\r\n]/.test(value)) return whole;
+  const first = value.split(/\r\n|\r|\n/).find(line => line.trim());
+  return tryParseNumber(first);
+}
+
 function lastUsedRow(ws) {
   const ref = ws['!ref'];
   if (!ref) return 0;
@@ -122,7 +131,7 @@ function tryFindActLayout(ws) {
         const code = extractCodeFromCell(ws[encode(r, cur.code.col)]?.v);
         const nm = cleanVisibleText(ws[encode(r, cur.name.col)]?.v);
         const unit = cleanVisibleText(ws[encode(r, cur.unit.col)]?.v);
-        const p = tryParseNumber(ws[encode(r, cur.price.col)]?.v);
+        const p = tryParseActPrice(ws[encode(r, cur.price.col)]?.v);
         if (code && nm && unit && looksLikeCode(code)) matches++;
       }
       if (matches > 0) {
@@ -228,7 +237,7 @@ export function parseActWorkbook(data) {
     const code = extractCodeFromCell(ws[encode(r, colCode)]?.v);
     const nm = cleanVisibleText(ws[encode(r, colName)]?.v);
     const unit = cleanVisibleText(ws[encode(r, colUnit)]?.v);
-    const p = tryParseNumber(ws[encode(r, colPrice)]?.v);
+    const p = tryParseActPrice(ws[encode(r, colPrice)]?.v);
     if (positionCol != null || isActDataRow(code, nm, unit, p.ok)) {
       rows.push({ row: outRow, position, srcRow: r + 1, sheet: bestSheet, code, name: nm, unit, price: p.ok ? p.value : null });
       outRow++; loaded++;
