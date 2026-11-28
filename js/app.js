@@ -2,13 +2,13 @@
 import { parseContractPdf, CONTRACT_PARSER_VERSION } from './pdf-contract.js?v=wide-units-1';
 import { parseActWorkbook, ACT_PARSER_VERSION } from './xlsx-act.js?v=act-14col-1';
 import { parseMarketWorkbook } from './xlsx-market.js';
-import { compareAct } from './compare-act.js?v=duplicate-tolerance-1';
+import { compareAct } from './compare-act.js?v=kp-survey-reference-1';
 import { compareMarket } from './compare-market.js';
 import { exportActReport, exportMarketReport } from './report-export.js?v=export-name-1';
 import { kvSet, kvGet, historyAdd } from './store.js';
 
 const $ = id => document.getElementById(id);
-const ACT_COMPARISON_VERSION = 6;
+const ACT_COMPARISON_VERSION = 7;
 const SLICE = 200;
 
 let state = {

@@ -31,7 +31,11 @@ function priceListContainsTolerance(prices, value, tolerance) {
 
 function workNameKey(name) {
   // Пояснение об индексах в КС-2 добавлено к названию работы; в PDF его нет.
-  return compactMatchText(name.replace(/\s*\(\s*письмо\s+пао.*$/i, ''));
+  // Ссылка на опросный лист в договоре не меняет технические характеристики
+  // самого ГРПШ и может отсутствовать в акте.
+  return compactMatchText(name
+    .replace(/\s*\(\s*письмо\s+пао.*$/i, '')
+    .replace(/\s*\(\s*г(?:р)?пш\s+согласно\s+опросного\s+листа\s+№\s*\d+\s*\)\s*$/i, ''));
 }
 
 function editDistanceWithin(a, b, limit = 2) {
