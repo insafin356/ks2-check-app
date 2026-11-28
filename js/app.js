@@ -241,9 +241,11 @@ function renderReport() {
     chips.map(([label, key]) => `<span class="chip ${key === 'ok' ? 'ok' : key === 'totalErrors' ? 'err' : ''}">${label}: ${summary[key] ?? 0}</span>`).join('');
 
   const filter = $('status-filter').value;
-  const visible = report.filter(r => !filter || (filter === 'not-found'
-    ? r.status === 'ШИФР НЕ НАЙДЕН' || r.status === 'ПОЗИЦИЯ КП НЕ НАЙДЕНА'
-    : r.status === filter));
+  const visible = report.filter(r => !filter || (filter === 'errors'
+    ? r.status !== 'ОК'
+    : filter === 'not-found'
+      ? r.status === 'ШИФР НЕ НАЙДЕН' || r.status === 'ПОЗИЦИЯ КП НЕ НАЙДЕНА'
+      : r.status === filter));
   const cols = kind === 'act'
     ? [['Строка акта', r => r.actRow], ['Шифр', r => r.code], ['Наименование в акте', r => r.name], ['Ед. изм.', r => r.unit],
        ['Цена в акте', r => fmtNum(r.actPrice), 'num'], ['Статус', r => r.status], ['Комментарий', r => r.note],

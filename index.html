@@ -100,6 +100,7 @@
     <div class="report-controls card">
       <select id="status-filter">
         <option value="">Все статусы</option>
+        <option value="errors">Все замечания (ошибки)</option>
         <option value="ОК">ОК</option>
         <option value="ЦЕНА ВЫШЕ ДОГОВОРНОЙ">ЦЕНА ВЫШЕ ДОГОВОРНОЙ</option>
         <option value="not-found">НЕ НАЙДЕНО В ДОГОВОРЕ (ВСЕ)</option>
@@ -127,7 +128,7 @@
 </main>
 
 <script src="vendor/xlsx-js-style.js"></script>
-<script type="module" src="js/app.js?v=wide-units-1"></script>
+<script type="module" src="js/app.js?v=report-errors-1"></script>
 <script>
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
     .then(reg => {
