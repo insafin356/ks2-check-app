@@ -1,6 +1,6 @@
-﻿/* Точка входа: вкладки, загрузка файлов, проверки, страницы позиций, отчёт */
+/* Точка входа: вкладки, загрузка файлов, проверки, страницы позиций, отчёт */
 import { parseContractPdf, CONTRACT_PARSER_VERSION } from './pdf-contract.js?v=wide-units-1';
-import { parseActWorkbook, ACT_PARSER_VERSION } from './xlsx-act.js?v=multiline-price-1';
+import { parseActWorkbook, ACT_PARSER_VERSION } from './xlsx-act.js?v=act-14col-1';
 import { parseMarketWorkbook } from './xlsx-market.js';
 import { compareAct } from './compare-act.js?v=duplicate-tolerance-1';
 import { compareMarket } from './compare-market.js';
@@ -444,3 +444,4 @@ $('btn-export').addEventListener('click', () => {
   renderStatusbar();
   if (state.report) renderReport();
 })();
+

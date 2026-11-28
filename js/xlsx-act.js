@@ -26,6 +26,7 @@ function scoreNameHeader(txt) {
   if (k.includes('наименованиеработ')) return 135;
   if (k.includes('наименованиезатрат')) return 125;
   if (k.includes('наименование') && (k.includes('работ') || k.includes('затрат'))) return 110;
+  if (k === 'наименование') return 100;
   return 0;
 }
 
@@ -245,3 +246,4 @@ export function parseActWorkbook(data) {
   }
   return { rows, meta: { parserVersion: ACT_PARSER_VERSION, sheet: bestSheet, objectName: findObjectName(ws, best.headerRow), cols: { code: colCode + 1, name: colName + 1, unit: colUnit + 1, price: colPrice + 1, position: positionCol == null ? null : positionCol + 1 }, headerRow: startRow + 1, loaded, skipped } };
 }
+
