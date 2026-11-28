@@ -246,4 +246,3 @@ export function parseActWorkbook(data) {
   }
   return { rows, meta: { parserVersion: ACT_PARSER_VERSION, sheet: bestSheet, objectName: findObjectName(ws, best.headerRow), cols: { code: colCode + 1, name: colName + 1, unit: colUnit + 1, price: colPrice + 1, position: positionCol == null ? null : positionCol + 1 }, headerRow: startRow + 1, loaded, skipped } };
 }
-

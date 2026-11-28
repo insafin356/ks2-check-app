@@ -45,4 +45,3 @@ if (process.env.KS2_NOVAYA_TURA_ACT) {
   }
 }
 console.log('14-column KS-2 import passed');
-
