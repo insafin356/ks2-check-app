@@ -128,16 +128,21 @@
 </main>
 
 <script src="vendor/xlsx-js-style.js"></script>
-<script type="module" src="js/app.js?v=report-errors-1"></script>
+<script type="module" src="js/app.js?v=online-update-1"></script>
 <script>
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
-    .then(reg => {
-      reg.addEventListener('updatefound', () => {
-        const nw = reg.installing;
-        if (nw) nw.addEventListener('statechange', () => { if (nw.state === 'activated') location.reload(); });
-      });
-      setInterval(() => reg.update().catch(() => {}), 60 * 60 * 1000);
+  if ('serviceWorker' in navigator) {
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (refreshing) return;
+      refreshing = true;
+      location.reload();
     });
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
+      .then(reg => {
+        reg.update().catch(() => {});
+        setInterval(() => reg.update().catch(() => {}), 60 * 60 * 1000);
+      });
+  }
 </script>
 
 <footer style="text-align:center;font-size:12px;color:#94a3b8;padding:14px 8px;">© 2026 INSAFIN — Стоимостной инжиниринг. Сафин Инсаф Фидаэлевич. Все права защищены.</footer>
