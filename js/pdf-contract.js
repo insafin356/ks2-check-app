@@ -1,7 +1,7 @@
 /* Парсинг договора из PDF через pdf.js — паритет BuildPdfPowerQueryFormula (Module1:3613) */
 import { normalizeText, looksLikeCode, tryParseNumber, firstToken, cleanVisibleText } from './norm.js';
 
-export const CONTRACT_PARSER_VERSION = 7;
+export const CONTRACT_PARSER_VERSION = 8;
 
 const UNIT_RE = /^(?:\d+\s*)?(?:м3|м2|м|км|т|кг|шт|стык|соединение|узел|участок|компл|ед|усл|смена|чел-ч|маш-см|ч|м\.кб|м\.кв|т\.км)$/i;
 
@@ -241,20 +241,33 @@ export function extractRowsFromWideBands(items, bounds) {
     const column = (left, right) => linesFromItems(inside.filter(it => it.transform[4] >= left && it.transform[4] < right))
       .map(line => line.cells.map(cell => cell.text.trim()).filter(Boolean).join(' ')).filter(Boolean);
     const codeLines = column(69, 205);
-    const nameLines = column(205, 555);
-    const unitLines = column(555, 610);
+    // The unit cell is centered in the printed table: long units may start
+    // at x≈548, before the usual x=555 boundary. Text in the description
+    // column starts at x≈208, so split by the text item's start position.
+    const nameLines = column(205, 540);
+    // A wrapped unit can dip a few points below the table rule and appear
+    // inside the next band. Associate it with the printed row above by its
+    // baseline; otherwise it becomes part of the following unit.
+    const unitItems = items.filter(it => it.transform[4] >= 540 && it.transform[4] < 610 &&
+      it.transform[5] < bounds[i] && it.transform[5] > bounds[i + 1] - 3 &&
+      it.transform[5] <= numberItem.transform[5] + 2);
+    const unitLines = linesFromItems(unitItems)
+      .map(line => line.cells.map(cell => cell.text.trim()).filter(Boolean).join(' ')).filter(Boolean);
     const prices = inside.filter(it => it.transform[4] >= 610)
       .map(it => ({ x: it.transform[4], text: it.str.trim(), parsed: tryParseNumber(it.str) }))
       .filter(it => it.parsed.ok && /[,\.]\d{2}$/.test(it.text))
       .sort((a, b) => a.x - b.x);
+    // The offer price without VAT is the second price column (x≈650–690).
+    // A zero-price row can contain only that single numeric value.
+    const offerPrice = prices.find(it => it.x >= 645 && it.x < 700);
     // The source can leave the unit cell empty (for example pipe positions).
-    if (!codeLines.length || !nameLines.length || prices.length < 2) continue;
+    if (!codeLines.length || !nameLines.length || !offerPrice) continue;
     const firstCode = codeLines[0];
     // The repeated numbered header has "2" in the code column.
     if (/^\d$/.test(firstCode)) continue;
     const code = looksLikeCode(firstToken(firstCode)) ? firstToken(firstCode) : codeLines.join(' ');
     rows.push({ code, name: nameLines.join(' '), unit: unitLines.join(' '),
-      price: prices[1].parsed.value, printedRow: Number(numberItem.str.trim()) });
+      price: offerPrice.parsed.value, printedRow: Number(numberItem.str.trim()) });
   }
   return rows;
 }
